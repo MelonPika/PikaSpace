@@ -1,0 +1,74 @@
+function useDashboardOverview(now: Date, widgetData: WidgetData, stats: SystemStats): DashboardOverview {
+  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+      void loadGoogleCalendarEvents(start, end, false, loadGoogleCalendarSelection())
+        .then((result) => {
+          if (!cancelled) setGoogleEvents(result.events);
+        })
+        .catch(() => {
+          if (!cancelled) setGoogleEvents([]);
+        });
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 5 * 60 * 1000);
+    window.addEventListener("pikanav:calendar-selection", refresh);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("pikanav:calendar-selection", refresh);
+    };
+  }, [now.toDateString()]);
+
+  return useMemo(() => {
+    const today = localDateKey(now);
+    const openTasks = widgetData.tasks.filter((task) => !task.completed);
+    const localEvents = widgetData.events.map((event) => ({
+      id: `local:${event.id}`,
+      title: event.title,
+      date: event.date,
+      href: "",
+      source: "Local calendar",
+    }));
+    const remoteEvents = googleEvents.map((event) => ({
+      id: `google:${event.calendarId}:${event.id}`,
+      title: event.title,
+      date: event.date,
+      href: event.htmlLink,
+      source: "Google Calendar",
+    }));
+    const events = [...remoteEvents, ...localEvents].sort((a, b) => a.date.localeCompare(b.date));
+    const eventNotifications: DashboardNotification[] = events.slice(0, 6).map((event) => ({
+      id: event.id,
+      title: event.title,
+      detail: `${event.date === today ? "Today" : new Date(`${event.date}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} ? ${event.source}`,
+      tone: "calendar",
+      href: event.href || undefined,
+    }));
+    const taskNotifications: DashboardNotification[] = openTasks.slice(0, 4).map((task) => ({
+      id: `task:${task.id}`,
+      title: task.title,
+      detail: "Open task",
+      tone: "task",
+    }));
+    const systemNotifications: DashboardNotification[] = [];
+    if (stats.status === "unavailable") {
+      systemNotifications.push({ id: "system:offline", title: "System monitor is offline", detail: stats.error || "Windows companion is unavailable.", tone: "system" });
+    } else if (stats.status === "ready") {
+      if ((stats.cpu || 0) >= 90) systemNotifications.push({ id: "system:cpu", title: "High CPU usage", detail: `CPU is at ${stats.cpu}%`, tone: "system" });
+      if ((stats.ram || 0) >= 90) systemNotifications.push({ id: "system:ram", title: "High memory usage", detail: `Memory is at ${stats.ram}%`, tone: "system" });
+    }
+    return {
+      todayEventCount: events.filter((event) => event.date === today).length,
+      openTaskCount: openTasks.length,
+      notifications: [...systemNotifications, ...eventNotifications, ...taskNotifications].slice(0, 12),
+    };
+  }, [googleEvents, now, stats.cpu, stats.error, stats.ram, stats.status, widgetData.events, widgetData.tasks]);
+}
+

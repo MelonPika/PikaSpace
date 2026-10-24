@@ -1,0 +1,313 @@
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+type GoogleCalendarEvent = { id: string; calendarId: string; title: string; date: string; htmlLink: string; color: string };
+type GoogleCalendarInfo = { id: string; summary: string; color: string; primary: boolean; selected: boolean; accessRole: string };
+const GOOGLE_CALENDAR_SELECTION_KEY = "pikanav.googleCalendarIds";
+
+function loadGoogleCalendarSelection(): string[] | null {
+  try {
+    const stored = localStorage.getItem(GOOGLE_CALENDAR_SELECTION_KEY);
+    return stored === null ? null : JSON.parse(stored);
+  } catch {
+    return null;
+  }
+}
+
+function saveGoogleCalendarSelection(ids: string[]) {
+  try {
+    localStorage.setItem(GOOGLE_CALENDAR_SELECTION_KEY, JSON.stringify(ids));
+  } catch {
+    // Calendar selection remains available for the current session.
+  }
+}
+
+function getGoogleCalendarToken(interactive: boolean): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!chromeApi?.identity?.getAuthToken) {
+      reject(new Error("Google Calendar connection is available in the installed Chrome extension."));
+      return;
+    }
+    chromeApi.identity.getAuthToken({ interactive }, (result: string | { token?: string } | undefined) => {
+      const token = typeof result === "string" ? result : result?.token;
+      if (chromeApi.runtime?.lastError || !token) {
+        reject(new Error(chromeApi.runtime?.lastError?.message || "Google Calendar is not connected."));
+        return;
+      }
+      resolve(token);
+    });
+  });
+}
+
+function removeGoogleCalendarToken(token: string): Promise<void> {
+  return new Promise((resolve) => {
+    if (!chromeApi?.identity?.removeCachedAuthToken) {
+      resolve();
+      return;
+    }
+    chromeApi.identity.removeCachedAuthToken({ token }, () => resolve());
+  });
+}
+
+async function googleCalendarRequest<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`https://www.googleapis.com/calendar/v3${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...init?.headers,
+    },
+  });
+  if (response.status === 401) await removeGoogleCalendarToken(token);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.error?.message || `Google Calendar returned ${response.status}.`);
+  }
+  return (response.status === 204 ? undefined : await response.json()) as T;
+}
+
+function googleEventDate(event: any) {
+  if (event?.start?.date) return String(event.start.date);
+  return event?.start?.dateTime ? localDateKey(new Date(event.start.dateTime)) : "";
+}
+
+async function loadGoogleCalendarEvents(start: Date, end: Date, interactive: boolean, requestedCalendarIds: string[] | null) {
+  const token = await getGoogleCalendarToken(interactive);
+  const calendarPayload = await googleCalendarRequest<{ items?: any[] }>("/users/me/calendarList?minAccessRole=reader", token);
+  const calendars = (calendarPayload.items || []).flatMap((item) => item?.id ? [{
+    id: String(item.id),
+    summary: String(item.summaryOverride || item.summary || "Untitled calendar"),
+    color: String(item.backgroundColor || "#4285f4"),
+    primary: Boolean(item.primary),
+    selected: Boolean(item.selected),
+    accessRole: String(item.accessRole || "reader"),
+  }] : []) as GoogleCalendarInfo[];
+  const knownIds = new Set(calendars.map((calendar) => calendar.id));
+  const requested = requestedCalendarIds?.filter((id) => knownIds.has(id));
+  const selectedCalendarIds = requestedCalendarIds !== null
+    ? requested || []
+    : calendars.filter((calendar) => calendar.selected || calendar.primary).map((calendar) => calendar.id);
+  const query = new URLSearchParams({
+    timeMin: start.toISOString(),
+    timeMax: end.toISOString(),
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "100",
+  });
+  const eventGroups = await Promise.all(selectedCalendarIds.map(async (calendarId) => {
+    const calendar = calendars.find((item) => item.id === calendarId);
+    const payload = await googleCalendarRequest<{ items?: any[] }>(`/calendars/${encodeURIComponent(calendarId)}/events?${query}`, token);
+    return (payload.items || []).flatMap((event) => {
+      const date = googleEventDate(event);
+      return event?.id && date ? [{
+        id: String(event.id),
+        calendarId,
+        title: String(event.summary || "(No title)"),
+        date,
+        htmlLink: String(event.htmlLink || ""),
+        color: calendar?.color || "#4285f4",
+      }] : [];
+    });
+  }));
+  return { token, calendars, selectedCalendarIds, events: eventGroups.flat() as GoogleCalendarEvent[] };
+}
+
+function CalendarWidget({ data, onChange, locale }: { data: WidgetData; onChange: (next: WidgetData) => void; locale: InterfaceLocale }) {
+  const today = new Date();
+  const [visibleMonth, setVisibleMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDate, setSelectedDate] = useState(() => localDateKey(today));
+  const [title, setTitle] = useState("");
+  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [googleCalendars, setGoogleCalendars] = useState<GoogleCalendarInfo[]>([]);
+  const [selectedCalendarIds, setSelectedCalendarIds] = useState<string[] | null>(() => loadGoogleCalendarSelection());
+  const [calendarPickerOpen, setCalendarPickerOpen] = useState(false);
+  const [googleToken, setGoogleToken] = useState("");
+  const [googleStatus, setGoogleStatus] = useState<"disconnected" | "loading" | "connected" | "error">("loading");
+  const [googleError, setGoogleError] = useState("");
+  const label = widgetLabel(widgetConfig.find((item) => item.id === "calendar")!, locale);
+  const firstDay = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth(), 1);
+  const weekStartsMonday = locale !== "en-US";
+  const offset = (firstDay.getDay() - (weekStartsMonday ? 1 : 0) + 7) % 7;
+  const gridStart = new Date(firstDay);
+  gridStart.setDate(firstDay.getDate() - offset);
+  const gridEnd = new Date(gridStart);
+  gridEnd.setDate(gridStart.getDate() + 42);
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+    return date;
+  });
+  const selectedEvents = data.events.filter((event) => event.date === selectedDate);
+  const selectedGoogleEvents = googleEvents.filter((event) => event.date === selectedDate);
+  const weekdays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(2024, 0, weekStartsMonday ? index + 1 : index);
+    return date.toLocaleDateString(locale, { weekday: "narrow" });
+  });
+
+  const syncGoogle = useCallback(async (interactive: boolean, start: Date, end: Date, calendarIds: string[] | null) => {
+    setGoogleStatus((current) => current === "connected" ? current : "loading");
+    setGoogleError("");
+    try {
+      const result = await loadGoogleCalendarEvents(start, end, interactive, calendarIds);
+      setGoogleToken(result.token);
+      setGoogleCalendars(result.calendars);
+      setGoogleEvents(result.events);
+      setSelectedCalendarIds(result.selectedCalendarIds);
+      saveGoogleCalendarSelection(result.selectedCalendarIds);
+      setGoogleStatus("connected");
+    } catch (error) {
+      if (interactive) {
+        setGoogleToken("");
+        setGoogleEvents([]);
+        setGoogleStatus("error");
+        setGoogleError(error instanceof Error ? error.message : "Unable to connect Google Calendar.");
+      } else {
+        setGoogleStatus((current) => current === "loading" ? "disconnected" : current);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    void syncGoogle(false, gridStart, gridEnd, selectedCalendarIds);
+  }, [visibleMonth, syncGoogle]);
+
+  function toggleGoogleCalendar(calendarId: string) {
+    const current = selectedCalendarIds || [];
+    const next = current.includes(calendarId) ? current.filter((id) => id !== calendarId) : [...current, calendarId];
+    setSelectedCalendarIds(next);
+    saveGoogleCalendarSelection(next);
+    window.dispatchEvent(new Event("pikanav:calendar-selection"));
+    void syncGoogle(false, gridStart, gridEnd, next);
+  }
+
+  async function addEvent(event: FormEvent) {
+    event.preventDefault();
+    const nextTitle = title.trim();
+    if (!nextTitle) return;
+    if (!googleToken) {
+      onChange({ ...data, events: [...data.events, { id: createId("event"), title: nextTitle, date: selectedDate }] });
+      setTitle("");
+      return;
+    }
+
+    setGoogleStatus("loading");
+    try {
+      const end = new Date(`${selectedDate}T12:00:00`);
+      end.setDate(end.getDate() + 1);
+      const selectedWritable = googleCalendars.find((calendar) => selectedCalendarIds?.includes(calendar.id) && (calendar.accessRole === "owner" || calendar.accessRole === "writer"));
+      const primary = googleCalendars.find((calendar) => calendar.primary);
+      const targetCalendarId = selectedWritable?.id || primary?.id || "primary";
+      await googleCalendarRequest(`/calendars/${encodeURIComponent(targetCalendarId)}/events`, googleToken, {
+        method: "POST",
+        body: JSON.stringify({
+          summary: nextTitle,
+          start: { date: selectedDate },
+          end: { date: localDateKey(end) },
+        }),
+      });
+      setTitle("");
+      await syncGoogle(false, gridStart, gridEnd, selectedCalendarIds);
+    } catch (error) {
+      setGoogleStatus("error");
+      setGoogleError(error instanceof Error ? error.message : "Unable to create the event.");
+    }
+  }
+
+  async function deleteGoogleEvent(event: GoogleCalendarEvent) {
+    if (!googleToken) return;
+    try {
+      await googleCalendarRequest(`/calendars/${encodeURIComponent(event.calendarId)}/events/${encodeURIComponent(event.id)}`, googleToken, { method: "DELETE" });
+      setGoogleEvents((items) => items.filter((item) => item.id !== event.id || item.calendarId !== event.calendarId));
+    } catch (error) {
+      setGoogleStatus("error");
+      setGoogleError(error instanceof Error ? error.message : "Unable to delete the event.");
+    }
+  }
+
+  async function disconnectGoogle() {
+    if (googleToken) {
+      await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(googleToken)}`, { method: "POST" }).catch(() => undefined);
+      await removeGoogleCalendarToken(googleToken);
+    }
+    setGoogleToken("");
+    setGoogleEvents([]);
+    setGoogleCalendars([]);
+    setCalendarPickerOpen(false);
+    setGoogleError("");
+    setGoogleStatus("disconnected");
+  }
+
+  return (
+    <aside className="glass-card utility-widget calendar-widget" aria-label={label}>
+      <div className="card-title-row">
+        <div className="card-kicker">{label}</div>
+        <div className="calendar-nav">
+          <button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1))} aria-label="Previous month">&lsaquo;</button>
+          <strong>{visibleMonth.toLocaleDateString(locale, { month: "short", year: "numeric" })}</strong>
+          <button type="button" onClick={() => setVisibleMonth(new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1))} aria-label="Next month">&rsaquo;</button>
+        </div>
+      </div>
+      <div className={`google-calendar-status ${googleStatus}`}>
+        <span><i>G</i>{googleToken ? "Google Calendar" : googleStatus === "loading" ? "Checking Google Calendar..." : "Local calendar"}</span>
+        {googleToken
+          ? <div><button type="button" onClick={() => void syncGoogle(false, gridStart, gridEnd, selectedCalendarIds)}>Refresh</button><button type="button" onClick={() => void disconnectGoogle()}>Disconnect</button></div>
+          : <button type="button" disabled={googleStatus === "loading"} onClick={() => void syncGoogle(true, gridStart, gridEnd, selectedCalendarIds)}>Connect Google</button>}
+      </div>
+      {googleToken && (
+        <div className="calendar-source-control">
+          <button type="button" className="calendar-source-trigger" onClick={() => setCalendarPickerOpen((open) => !open)}>
+            <span>{selectedCalendarIds?.length || 0} of {googleCalendars.length} calendars</span>
+            <ChevronDown size={13} />
+          </button>
+          {calendarPickerOpen && (
+            <div className="calendar-source-menu" role="group" aria-label="Visible Google calendars">
+              {googleCalendars.map((calendar) => {
+                const enabled = Boolean(selectedCalendarIds?.includes(calendar.id));
+                return (
+                  <button type="button" className={enabled ? "active" : ""} key={calendar.id} onClick={() => toggleGoogleCalendar(calendar.id)}>
+                    <i style={{ "--calendar-color": calendar.color } as CSSProperties}>{enabled && <Check size={11} />}</i>
+                    <span>{calendar.summary}</span>
+                    {calendar.primary && <small>Primary</small>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+      {googleError && <p className="calendar-error" role="alert">{googleError}</p>}
+      <div className="calendar-grid">
+        {weekdays.map((day, index) => <span className="calendar-weekday" key={`${day}-${index}`}>{day}</span>)}
+        {days.map((date) => {
+          const key = localDateKey(date);
+          const hasEvents = data.events.some((event) => event.date === key) || googleEvents.some((event) => event.date === key);
+          return (
+            <button type="button" key={key} className={[date.getMonth() !== visibleMonth.getMonth() ? "outside" : "", key === selectedDate ? "selected" : "", key === localDateKey(today) ? "today" : "", hasEvents ? "has-events" : ""].filter(Boolean).join(" ")} onClick={() => setSelectedDate(key)}>
+              {date.getDate()}
+            </button>
+          );
+        })}
+      </div>
+      <form className="widget-add-form calendar-add" onSubmit={addEvent}>
+        <input value={title} maxLength={160} onChange={(event) => setTitle(event.target.value)} placeholder={`Event on ${new Date(`${selectedDate}T12:00:00`).toLocaleDateString(locale, { month: "short", day: "numeric" })}`} aria-label="Event title" />
+        <button type="submit" disabled={googleStatus === "loading"} aria-label="Add event"><Plus size={15} /></button>
+      </form>
+      <div className="event-list">
+        {selectedEvents.length === 0 && selectedGoogleEvents.length === 0 && <span className="event-empty">No events for this day</span>}
+        {selectedGoogleEvents.map((item) => (
+          <div className="google-event" style={{ "--event-color": item.color } as CSSProperties} key={`${item.calendarId}:${item.id}`}>
+            {item.htmlLink ? <a href={item.htmlLink} target="_blank" rel="noreferrer">{item.title}</a> : <span>{item.title}</span>}
+            <button type="button" onClick={() => void deleteGoogleEvent(item)} aria-label={`Delete ${item.title}`}><X size={12} /></button>
+          </div>
+        ))}
+        {selectedEvents.map((item) => (
+          <div key={item.id}><span>{item.title}</span><button type="button" onClick={() => onChange({ ...data, events: data.events.filter((event) => event.id !== item.id) })} aria-label={`Delete ${item.title}`}><X size={12} /></button></div>
+        ))}
+      </div>
+    </aside>
+  );
+}

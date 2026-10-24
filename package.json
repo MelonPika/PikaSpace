@@ -1,0 +1,34 @@
+{
+  "name": "pikanav",
+  "private": true,
+  "version": "1.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1",
+    "build": "node scripts/generate-notices.mjs && vite build",
+    "dev": "vite",
+    "test": "node --test tests/background.test.mjs tests/media.test.mjs tests/storage.test.mjs && npm run typecheck && npm run build && node scripts/validate-extension.mjs",
+    "package": "npm run lint && npm test && node scripts/package-extension.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:browser": "node tests/browser-smoke.mjs",
+    "lint": "node scripts/check-source.mjs",
+    "package:companion": "powershell -NoProfile -ExecutionPolicy Bypass -File companion/scripts/build-companion.ps1 -BootstrapCompiler",
+    "test:companion": "powershell -NoProfile -ExecutionPolicy Bypass -File tests/companion-installer.ps1"
+  },
+  "dependencies": {
+    "lucide-react": "0.487.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.9.3",
+    "vite": "6.4.5"
+  }
+}

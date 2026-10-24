@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PikaNav Media</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="popup-shell">
+    <header>
+      <h1>PikaNav Media</h1>
+      <p id="connection-status" class="status status-waiting">Checking companion...</p>
+    </header>
+
+    <section class="media-fields" aria-label="Current media">
+      <div>
+        <span>Title</span>
+        <strong id="media-title">-</strong>
+      </div>
+      <div>
+        <span>Artist</span>
+        <strong id="media-artist">-</strong>
+      </div>
+      <div>
+        <span>Album</span>
+        <strong id="media-album">-</strong>
+      </div>
+      <div>
+        <span>Source/App</span>
+        <strong id="media-source">-</strong>
+      </div>
+      <div>
+        <span>Status</span>
+        <strong id="media-playback">-</strong>
+      </div>
+    </section>
+
+    <section class="button-grid" aria-label="Media controls">
+      <button id="refresh-button" type="button">Refresh</button>
+      <button id="previous-button" type="button">Previous</button>
+      <button id="play-pause-button" type="button">Play/Pause</button>
+      <button id="next-button" type="button">Next</button>
+    </section>
+
+    <section class="system-panel" aria-label="System stats">
+      <div class="section-heading">
+        <h2>System</h2>
+        <button id="refresh-system-button" type="button">Refresh System Stats</button>
+      </div>
+
+      <p id="system-status" class="status status-waiting">System stats not loaded.</p>
+
+      <div class="media-fields">
+        <div>
+          <span>CPU</span>
+          <strong id="system-cpu">-</strong>
+        </div>
+        <div>
+          <span>Memory</span>
+          <strong id="system-memory">-</strong>
+        </div>
+        <div>
+          <span>Disk</span>
+          <strong id="system-disk">-</strong>
+        </div>
+        <div>
+          <span>GPU</span>
+          <strong id="system-gpu">-</strong>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>

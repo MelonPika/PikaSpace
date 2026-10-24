@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "PikaNav",
+  "description": "Your personal new-tab dashboard with search, favorites, notes, tasks, weather, and browser media controls.",
+  "version": "1.0.1",
+  "minimum_chrome_version": "106",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": [
+    "scripting",
+    "nativeMessaging",
+    "storage",
+    "geolocation"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "host_permissions": [
+    "https://api.open-meteo.com/*",
+    "https://geocoding-api.open-meteo.com/*",
+    "https://suggestqueries.google.com/*",
+    "https://api.bing.com/*",
+    "https://duckduckgo.com/*",
+    "https://news.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://suggestqueries.google.com https://api.bing.com https://duckduckgo.com https://news.google.com"
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuN6KeTKBeSqFjOxGVOc8zwi+zcrNbIMy4rLhbnhcv8gGHWN+wNyjy+QVv7gOQq1ombpOXlk/ufIGFT4dCY/La9jJCNVCxkInzoXcqpAApRMwH7+rqDT24HIR86EQstLuTFLpbWCQ8lSoylec+WS84B7n4zikS1UL2P8FGNSu1soBePx3rUXEEDcYtTQ0yYSaM/RHiNfbXNxdomA4glljLC6dQOEfWrd24sxL5blaM2qySIQW7AxY9B+so5N4ruhLuD0aZTFsRL7TBf4VdNu5/tWZC/PoDkaMBfaCfHcq5kb/mTRfxrFj65Cn3hgZc4eI8csSHLTITDUvxj8nxPr6SQIDAQAB"
+}

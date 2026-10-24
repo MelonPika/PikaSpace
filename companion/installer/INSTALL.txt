@@ -1,0 +1,36 @@
+PikaNav Windows Companion
+
+Requirements: Windows 10 version 2004 or later / Windows 11, x64, Google Chrome.
+
+1. Load PikaNav in Chrome.
+2. Run PikaNav-Companion-0.2.1-Setup-x64.exe.
+3. Keep "Connect automatically" selected and click Install.
+4. Refresh your PikaNav dashboard. You normally do not need to copy any ID.
+
+No administrator access, PowerShell commands, .NET installation, startup app,
+tray app, or Windows service is required. The helper is installed for the current
+Windows user. Chrome starts it for a request and it exits when disconnected.
+There is no network server. Media and system information stay on this computer.
+
+Setup finds existing PikaNav dashboards across standard Chrome profiles and
+already knows the stable ID used by portable releases starting with 1.0.1.
+If you just loaded an older unpacked copy, close and reopen Chrome so its record
+is saved, then click Detect again. Manual ID entry is available for custom
+profile folders and diagnostic extensions. Up to 10 IDs may be comma-separated.
+
+To move from an old extension to the stable-ID 1.0.1 portable release, export
+settings in the old dashboard first, then import in the new one. Updating only
+this companion works with your existing extension and needs no data migration.
+
+Desktop playback needs a media app that publishes a Windows media session.
+CPU/RAM/disk information is available locally. GPU readings are currently
+unavailable; the companion does not invent values for unsupported metrics.
+
+To update: run the newer installer. Close Chrome first if files are in use.
+To uninstall: Windows Settings > Apps > PikaNav Windows Companion > Uninstall.
+Uninstall removes the helper, bundled runtime, and its Chrome registration.
+Existing diagnostic logs may remain under %LOCALAPPDATA%\PikaNav\MediaHost\logs.
+Removing the companion does not remove the PikaNav extension or its settings.
+
+Unsigned development builds may display Windows SmartScreen's publisher prompt.
+Public releases should be code-signed using a publisher-owned certificate.

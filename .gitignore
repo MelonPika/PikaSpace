@@ -1,0 +1,7 @@
+node_modules/
+dist/
+releases/
+.verification/
+.cache/
+companion/native-host/bin/
+companion/native-host/obj/
