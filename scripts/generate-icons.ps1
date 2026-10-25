@@ -1,58 +1,61 @@
-# Rasterize the existing icon-128.svg geometry using Windows drawing APIs.
+# Generate Chrome icons and README wordmarks from the supplied mascot artwork.
 Add-Type -AssemblyName System.Drawing
-$ErrorActionPreference = "Stop"
-$iconDir = Join-Path (Split-Path $PSScriptRoot -Parent) "public\icons"
-$canvas = New-Object System.Drawing.Bitmap 512, 512
-$graphics = [System.Drawing.Graphics]::FromImage($canvas)
-$graphics.SmoothingMode = "AntiAlias"
-$graphics.ScaleTransform(4, 4)
-$background = New-Object System.Drawing.Drawing2D.GraphicsPath
-$background.AddArc(0, 0, 64, 64, 180, 90)
-$background.AddArc(64, 0, 64, 64, 270, 90)
-$background.AddArc(64, 64, 64, 64, 0, 90)
-$background.AddArc(0, 64, 64, 64, 90, 90)
-$background.CloseFigure()
-$dark = New-Object System.Drawing.SolidBrush ([System.Drawing.ColorTranslator]::FromHtml('#070a10'))
-$graphics.FillPath($dark, $background)
-$letter = New-Object System.Drawing.Drawing2D.GraphicsPath
-$letter.StartFigure()
-$letter.AddLine(38, 96, 38, 32)
-$letter.AddLine(38, 32, 71.5, 32)
-$letter.AddBezier(71.5, 32, 87.3, 32, 97, 41.3, 97, 55.5)
-$letter.AddBezier(97, 55.5, 97, 69.7, 87.3, 79, 71.5, 79)
-$letter.AddLine(71.5, 79, 54.8, 79)
-$letter.AddLine(54.8, 79, 54.8, 96)
-$letter.CloseFigure()
-$letter.StartFigure()
-$letter.AddLine(54.8, 65.9, 69.8, 65.9)
-$letter.AddBezier(69.8, 65.9, 76.4, 65.9, 80.3, 62, 80.3, 55.5)
-$letter.AddBezier(80.3, 55.5, 80.3, 49, 76.4, 45.2, 69.8, 45.2)
-$letter.AddLine(69.8, 45.2, 54.8, 45.2)
-$letter.CloseFigure()
-$gradient = New-Object System.Drawing.Drawing2D.LinearGradientBrush ([System.Drawing.Point]::new(30, 24)), ([System.Drawing.Point]::new(103, 103)), ([System.Drawing.Color]::Purple), ([System.Drawing.Color]::Cyan)
-$blend = New-Object System.Drawing.Drawing2D.ColorBlend 3
-$blend.Colors = @('#8b5cf6', '#22d3ee', '#34d399') | ForEach-Object { [System.Drawing.ColorTranslator]::FromHtml($_) }
-$blend.Positions = [single[]]@(0, 0.55, 1)
-$gradient.InterpolationColors = $blend
-$graphics.FillPath($gradient, $letter)
-$green = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(209, 52, 211, 153))
-$graphics.FillEllipse($green, 85, 21, 22, 22)
-$mountain = New-Object System.Drawing.Drawing2D.GraphicsPath
-$mountain.AddBezier(16, 100, 36, 72, 51, 71, 71, 93)
-$mountain.AddBezier(71, 93, 87, 77, 99, 78, 112, 100)
-$mountain.CloseFigure()
-$mountainBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(230, 16, 35, 31))
-$graphics.FillPath($mountainBrush, $mountain)
-foreach ($size in @(16, 48, 128)) {
-  $icon = New-Object System.Drawing.Bitmap $size, $size
-  $scaled = [System.Drawing.Graphics]::FromImage($icon)
-  $scaled.InterpolationMode = "HighQualityBicubic"
-  $scaled.DrawImage($canvas, 0, 0, $size, $size)
-  $icon.Save((Join-Path $iconDir "icon-$size.png"), [System.Drawing.Imaging.ImageFormat]::Png)
-  $scaled.Dispose()
-  $icon.Dispose()
+$ErrorActionPreference = 'Stop'
+$repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$iconDir = Join-Path $repoRoot 'public\icons'
+$assetDir = Join-Path $repoRoot 'docs\assets'
+$sourcePath = Join-Path $assetDir 'pikadesk-mascot.png'
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+if (!(Test-Path -LiteralPath $sourcePath)) { throw 'The original mascot PNG is missing from docs/assets/pikadesk-mascot.png.' }
+$sourceImage = [System.Drawing.Bitmap]::FromFile($sourcePath)
+try {
+  if ($sourceImage.Width -ne $sourceImage.Height) { throw 'The mascot source must be square.' }
+  foreach ($size in @(16, 32, 48, 64, 128, 256)) {
+    $destination = Join-Path $iconDir "icon-$size.png"
+    if ($size -eq 256) { $destination = Join-Path $assetDir 'mascot-256.png' }
+    $icon = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($icon)
+    $attributes = New-Object System.Drawing.Imaging.ImageAttributes
+    try {
+      $graphics.Clear([System.Drawing.Color]::Transparent)
+      $graphics.CompositingMode = [System.Drawing.Drawing2D.CompositingMode]::SourceCopy
+      $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
+      $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+      $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+      $attributes.SetWrapMode([System.Drawing.Drawing2D.WrapMode]::TileFlipXY)
+      $bounds = New-Object System.Drawing.Rectangle 0, 0, $size, $size
+      $graphics.DrawImage($sourceImage, $bounds, 0, 0, $sourceImage.Width, $sourceImage.Height, [System.Drawing.GraphicsUnit]::Pixel, $attributes)
+      $icon.Save($destination, [System.Drawing.Imaging.ImageFormat]::Png)
+    } finally {
+      $attributes.Dispose()
+      $graphics.Dispose()
+      $icon.Dispose()
+    }
+    if ($size -in @(16, 48, 128)) {
+      $encoded = [Convert]::ToBase64String([IO.File]::ReadAllBytes($destination))
+      $svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="{0}" height="{0}" viewBox="0 0 {0} {0}" role="img" aria-label="PikaDesk mascot"><image width="{0}" height="{0}" href="data:image/png;base64,{1}"/></svg>' -f $size, $encoded) + [Environment]::NewLine
+      [IO.File]::WriteAllText((Join-Path $iconDir "icon-$size.svg"), $svg, $utf8NoBom)
+    }
+  }
+} finally { $sourceImage.Dispose() }
+$mascot = [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $assetDir 'mascot-256.png')))
+foreach ($theme in @('light', 'dark')) {
+  if ($theme -eq 'dark') {
+    $muted = '#b0b9cd'; $stroke = '#303a50'; $pika = '#FFD34D'; $desk = '#4D9BFF'
+  } else {
+    $muted = '#62708a'; $stroke = '#dce2ee'; $pika = '#A95C00'; $desk = '#1A65D1'
+  }
+  $wordmark = @"
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="188" viewBox="0 0 800 188" role="img" aria-labelledby="wordmark-title wordmark-description">
+<title id="wordmark-title">PikaDesk &#183; &#30382;&#21345;&#26700;&#38754;</title>
+<desc id="wordmark-description">The supplied PikaDesk mascot beside its English and Chinese names.</desc>
+<image x="100" y="18" width="152" height="152" href="data:image/png;base64,$mascot"/>
+<path d="M277 45v98" stroke="$stroke" stroke-width="1"/>
+<text x="315" y="99" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="66" font-weight="750" letter-spacing="-2.5"><tspan fill="$pika">Pika</tspan><tspan fill="$desk">Desk</tspan></text>
+<text x="319" y="140" fill="$muted" font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif" font-size="32" font-weight="500" letter-spacing="5">&#30382;&#21345;&#26700;&#38754;</text>
+<circle cx="621" cy="53" r="5" fill="#7ED957"/>
+</svg>
+"@
+  [IO.File]::WriteAllText((Join-Path $assetDir "wordmark-$theme.svg"), $wordmark + [Environment]::NewLine, $utf8NoBom)
 }
-$graphics.Dispose()
-$canvas.Dispose()
-@($background, $letter, $mountain, $gradient, $dark, $green, $mountainBrush) | ForEach-Object { $_.Dispose() }
-Write-Host "Generated Chrome-compatible PNG icons."
+Write-Host 'Generated mascot PNG icons (16/32/48/64/128), SVG compatibility assets, and README wordmarks.'
