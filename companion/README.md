@@ -1,6 +1,4 @@
-# PikaDesk · 皮卡桌面 Windows Companion
-
-Part of [PikaDesk · 皮卡桌面](https://github.com/MelonPika/PikaSpace). Installer upgrade identity, native host names, executable paths, and the existing installation directory retain their legacy identifiers for compatibility.
+# PikaSpace Windows Companion
 
 The Windows companion reads and controls the current Windows desktop media session and reports system metrics. `native-host/` contains the helper, `installer/` contains the EXE setup wizard, `scripts/` contains build/install tools, and `diagnostics-extension/` contains the older developer diagnostic popup.
 
@@ -18,7 +16,7 @@ The runtime helper has no tray app, service, updater, web server, or localhost H
 - Google Chrome
 - No additional runtime or developer tools for the EXE installer
 
-Building from source requires a .NET SDK supporting .NET 8. The legacy PowerShell development install also needs the shared .NET 8 runtime on the target machine.
+Building from source requires a .NET SDK supporting .NET 8. The PowerShell development install also needs the shared .NET 8 runtime on the target machine.
 
 ## Load the Chrome extension
 
@@ -30,11 +28,11 @@ Building from source requires a .NET SDK supporting .NET 8. The legacy PowerShel
 
 ## Install the Windows companion
 
-For users, run `releases/companion/PikaDesk-Companion-0.2.1-Setup-x64.exe` from the repository root and choose **Connect automatically**, then refresh PikaDesk · 皮卡桌面. Setup detects existing PikaDesk · 皮卡桌面 dashboards in standard Chrome profiles and includes the stable portable-release ID. No administrator permissions or PowerShell commands are needed. Manual ID entry remains available for the diagnostic extension in this folder and custom profiles. Rerun Setup to update or reconnect; uninstall from Windows Settings > Apps.
+For users, run `releases/companion/PikaSpace-Companion-1.0.0-Setup-x64.exe` from the repository root and choose **Connect automatically**, then refresh PikaSpace. Setup detects existing PikaSpace dashboards in standard Chrome profiles and includes the stable portable-release ID. No administrator permissions or PowerShell commands are needed. Manual ID entry remains available for the diagnostic extension in this folder and custom profiles. Rerun Setup to update or reconnect; uninstall from Windows Settings > Apps.
 
 Run `npm run package:companion` from the repository root to build the EXE. See [packaging and verification](../docs/COMPANION.md) for compiler bootstrapping, preconfigured IDs, and isolated installer tests.
 
-The older development-only installation remains available from the `companion` folder:
+A development-only installation is available from the `companion` folder:
 
 ```powershell
 .\scripts\install-companion.ps1 -ExtensionId "YOUR_EXTENSION_ID"
@@ -60,7 +58,7 @@ Admin permissions are not required.
 
 4. Restart Chrome, or reload the extension from `chrome://extensions`.
 5. Start music in Spotify, YouTube Music, Chrome, Edge, or another Windows media app.
-6. Open the PikaDesk · 皮卡桌面 Media extension popup.
+6. Open the PikaSpace Media extension popup.
 7. Confirm the status says the companion is connected.
 8. Click Refresh.
 9. Verify Title, Artist, Album, Source/App, and Status update.
@@ -77,7 +75,7 @@ Admin permissions are not required.
 ```
 
 17. Reload the extension and open the popup.
-18. Confirm it shows: `PikaDesk · 皮卡桌面 Windows Companion is not installed or not registered.`
+18. Confirm it shows: `PikaSpace Windows Companion is not installed or not registered.`
 
 ## Native commands
 
@@ -169,7 +167,7 @@ The native messaging manifest must contain the exact loaded extension ID:
 ]
 ```
 
-If the ID is wrong, rerun the EXE Setup wizard. For the legacy development install, rerun:
+If the ID is wrong, rerun the EXE Setup wizard. For the development development install, rerun:
 
 ```powershell
 .\scripts\install-companion.ps1 -ExtensionId "YOUR_EXTENSION_ID"
@@ -195,19 +193,19 @@ GPU stats are best-effort. The current companion returns nullable GPU usage and 
 
 ## Uninstall
 
-For an EXE installation, use **Windows Settings > Apps > PikaDesk · 皮卡桌面 Windows Companion > Uninstall**. The legacy helper script delegates to the EXE uninstaller when present:
+For an EXE installation, use **Windows Settings > Apps > PikaSpace Windows Companion > Uninstall**. The development helper script delegates to the EXE uninstaller when present:
 
 ```powershell
 .\scripts\uninstall-companion.ps1
 ```
 
-This removes the companion files and its Chrome registration. The EXE uninstaller preserves diagnostic logs and any registration since taken over by another installation. The legacy script removes its entire install folder.
+This removes the companion files and its Chrome registration. The EXE uninstaller preserves diagnostic logs and any registration since taken over by another installation. The development script removes its entire install folder.
 
 ## Assumptions
 
 - Setup automatically discovers dashboard IDs from Chrome's local extension records and includes the stable portable ID. The user can override pairing manually for diagnostic builds or unusual profiles.
 - Google Chrome is the target browser for this MVP.
-- The EXE includes the runtime. Only source builds and the legacy developer install need developer tools.
+- The EXE includes the runtime. Only source builds and the development developer install need developer tools.
 - The native host targets `win-x64`.
 - The active media app supports Windows GSMTC metadata and controls.
 - The MVP does not need persistent background polling; the popup requests state when opened or refreshed.

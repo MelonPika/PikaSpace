@@ -29,7 +29,7 @@ if (Test-Path -LiteralPath (Join-Path $installDir 'unins000.exe')) {
   throw 'This companion is managed by the EXE installer. Run the newer Setup EXE to update it, or uninstall it from Windows Settings first.'
 }
 
-Write-Host "Publishing PikaDesk · 皮卡桌面 Windows Companion..."
+Write-Host "Publishing PikaSpace Windows Companion..."
 dotnet publish $projectPath -c Release -r win-x64 --self-contained false
 if ($LASTEXITCODE -ne 0) {
   throw "dotnet publish failed. Fix the build errors above and run the installer again."
@@ -57,7 +57,7 @@ Copy-Item -Path (Join-Path $publishDir "*") -Destination $installDir -Recurse -F
 
 $manifest = [ordered]@{
   name = "com.pikanav.media"
-  description = "PikaDesk · 皮卡桌面 Windows media companion"
+  description = "PikaSpace Windows media companion"
   path = $exePath
   type = "stdio"
   allowed_origins = @($ExtensionIds | ForEach-Object { "chrome-extension://$_/" })
@@ -70,6 +70,6 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 New-Item -Path $registryPath -Force | Out-Null
 Set-Item -Path $registryPath -Value $manifestPath
 
-Write-Host "PikaDesk · 皮卡桌面 Windows Companion installed."
+Write-Host "PikaSpace Windows Companion installed."
 Write-Host "Native host manifest: $manifestPath"
 Write-Host "Registered host: com.pikanav.media"

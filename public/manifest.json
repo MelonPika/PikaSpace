@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "PikaDesk · 皮卡桌面",
+  "name": "PikaSpace",
   "description": "A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "minimum_chrome_version": "106",
   "chrome_url_overrides": {
     "newtab": "index.html"

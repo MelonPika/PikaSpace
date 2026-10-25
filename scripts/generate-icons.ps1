@@ -4,9 +4,9 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $iconDir = Join-Path $repoRoot 'public\icons'
 $assetDir = Join-Path $repoRoot 'docs\assets'
-$sourcePath = Join-Path $assetDir 'pikadesk-mascot.png'
+$sourcePath = Join-Path $assetDir 'pikaspace-mascot.png'
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
-if (!(Test-Path -LiteralPath $sourcePath)) { throw 'The original mascot PNG is missing from docs/assets/pikadesk-mascot.png.' }
+if (!(Test-Path -LiteralPath $sourcePath)) { throw 'The original mascot PNG is missing from docs/assets/pikaspace-mascot.png.' }
 $sourceImage = [System.Drawing.Bitmap]::FromFile($sourcePath)
 try {
   if ($sourceImage.Width -ne $sourceImage.Height) { throw 'The mascot source must be square.' }
@@ -33,7 +33,7 @@ try {
     }
     if ($size -in @(16, 48, 128)) {
       $encoded = [Convert]::ToBase64String([IO.File]::ReadAllBytes($destination))
-      $svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="{0}" height="{0}" viewBox="0 0 {0} {0}" role="img" aria-label="PikaDesk mascot"><image width="{0}" height="{0}" href="data:image/png;base64,{1}"/></svg>' -f $size, $encoded) + [Environment]::NewLine
+      $svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="{0}" height="{0}" viewBox="0 0 {0} {0}" role="img" aria-label="PikaSpace mascot"><image width="{0}" height="{0}" href="data:image/png;base64,{1}"/></svg>' -f $size, $encoded) + [Environment]::NewLine
       [IO.File]::WriteAllText((Join-Path $iconDir "icon-$size.svg"), $svg, $utf8NoBom)
     }
   }
@@ -47,13 +47,13 @@ foreach ($theme in @('light', 'dark')) {
   }
   $wordmark = @"
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="188" viewBox="0 0 800 188" role="img" aria-labelledby="wordmark-title wordmark-description">
-<title id="wordmark-title">PikaDesk &#183; &#30382;&#21345;&#26700;&#38754;</title>
-<desc id="wordmark-description">The supplied PikaDesk mascot beside its English and Chinese names.</desc>
+<title id="wordmark-title">PikaSpace</title>
+<desc id="wordmark-description">The supplied PikaSpace mascot beside its product name and tagline.</desc>
 <image x="100" y="18" width="152" height="152" href="data:image/png;base64,$mascot"/>
 <path d="M277 45v98" stroke="$stroke" stroke-width="1"/>
-<text x="315" y="99" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="66" font-weight="750" letter-spacing="-2.5"><tspan fill="$pika">Pika</tspan><tspan fill="$desk">Desk</tspan></text>
-<text x="319" y="140" fill="$muted" font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif" font-size="32" font-weight="500" letter-spacing="5">&#30382;&#21345;&#26700;&#38754;</text>
-<circle cx="621" cy="53" r="5" fill="#7ED957"/>
+<text x="315" y="99" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="66" font-weight="750" letter-spacing="-2.5"><tspan fill="$pika">Pika</tspan><tspan fill="$desk">Space</tspan></text>
+<text x="319" y="140" fill="$muted" font-family="Segoe UI,Microsoft YaHei,PingFang SC,sans-serif" font-size="18" font-weight="500" letter-spacing="0.3">Your Browser, Your Workspace.</text>
+<circle cx="682" cy="53" r="5" fill="#7ED957"/>
 </svg>
 "@
   [IO.File]::WriteAllText((Join-Path $assetDir "wordmark-$theme.svg"), $wordmark + [Environment]::NewLine, $utf8NoBom)

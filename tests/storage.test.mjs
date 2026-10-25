@@ -24,7 +24,7 @@ function setup({ local = {}, sync = {}, failRead = [], failWrite = [], webFails 
   return { storage: createDashboardStorage(api, webStorage, message => notices.push(message)), local, sync, notices, web };
 }
 
-test('legacy sync settings migrate without requiring an existing local mirror', async () => {
+test('sync settings load without requiring an existing local mirror', async () => {
   const old = { settings: { themeMode: 'light' }, favorites: [], calendarPreference: true };
   const { storage } = setup({ sync: { 'pikanav:data': old } });
   assert.deepEqual(await storage.loadDashboard(), old);

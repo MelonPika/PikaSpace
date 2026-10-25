@@ -43,9 +43,9 @@ Browser tests use real extension/media APIs and explicit fixtures for external s
 
 ```text
 releases/
-├── PikaDesk-1.0.1/extension/
-├── PikaDesk-1.0.1.zip
-└── PikaDesk-1.0.1-chrome-web-store.zip
+├── PikaSpace-1.0.0/extension/
+├── PikaSpace-1.0.0.zip
+└── PikaSpace-1.0.0-chrome-web-store.zip
 ```
 
 The store-layout ZIP puts `manifest.json` at its root for publisher review; it does not indicate store publication. The companion is packaged separately under `releases/companion/`.
@@ -63,13 +63,12 @@ The store-layout ZIP puts `manifest.json` at its root for publisher review; it d
 | `tests/` | Dashboard, media, storage, browser, and installer tests · 桌面、媒体、存储、浏览器与安装测试 |
 | `docs/` | Installation, privacy, release, and companion guides · 安装、隐私、版本与助手文档 |
 | `docs/assets/` | Real product screenshots and capture notes · 实机截图与拍摄说明 |
-| `docs/archive/` | Historical source and verification evidence · 历史源码与验证记录 |
 | `future-features/calendar/` | Disabled Calendar source preserved for future work · 保留的日历源码，当前未启用 |
 | `releases/` | Generated extension packages and companion installers · 生成的扩展包与助手安装程序 |
 
-`node_modules/`, `dist/`, `.verification/`, and `.cache/` are local dependency or generated folders. Cleanup keeps dependencies, historical archives, and every release version. To also remove cached installer tools, run:
+`node_modules/`, `dist/`, `.verification/`, and `.cache/` are local dependency or generated folders. Cleanup keeps installed dependencies and packaged releases. To also remove cached installer tools, run:
 
-以下命令会额外清理下载的安装工具缓存；普通清理会保留依赖、历史归档和所有版本的发布产物。
+以下命令会额外清理下载的安装工具缓存；普通清理会保留依赖和打包产物。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1 -ToolCache
@@ -85,5 +84,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1 -ToolCache
 | [Privacy](PRIVACY.md) | Storage, permissions, and external data flows · 存储、权限与外部服务数据流 |
 | [Companion](COMPANION.md) / [Native protocol](../companion/README.md) | Installer, packaging, detection, and native messaging · 安装、打包、检测与原生消息 |
 | [Release notes](RELEASE-NOTES.md) / [Store preparation](STORE-PREPARATION.md) | Version changes and publisher checklist · 版本变化与发布准备 |
-| [Historical audit](RELEASE-AUDIT-1.0.md) / [Archives](archive/README.md) | Previous release checks and preserved evidence · 历史验收与保留记录 |
 | [Calendar source](../future-features/calendar/README.md) | Deferred implementation and compatibility notes · 暂缓的实现与兼容说明 |

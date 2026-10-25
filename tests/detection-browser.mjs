@@ -49,15 +49,13 @@ try {
   const stable = await send('Extensions.loadUnpacked', { path: path.resolve('dist') });
   const manifest = JSON.parse(await readFile('dist/manifest.json', 'utf8'));
   assert.equal(stable.id, extensionIdFromKey(manifest.key));
-  const legacy = await send('Extensions.loadUnpacked', { path: path.resolve('releases/PikaNav-0.2.0/extension') });
-  assert.notEqual(legacy.id, stable.id);
   await send('Browser.close');
   await exited;
   const detected = spawnSync(detector, ['--user-data-dir', profile, '--output', output], { windowsHide: true });
   if (detected.error) throw detected.error;
   assert.equal(detected.status, 0);
-  assert.deepEqual((await readFile(output, 'utf8')).split(',').sort(), [legacy.id, stable.id].sort());
-  const result = { realChromeProfiles: 'passed', stableId: stable.id, legacyUnpackedDetection: 'passed', nativeRegistration: 'untouched' };
+  assert.equal(await readFile(output, 'utf8'), stable.id);
+  const result = { realChromeProfiles: 'passed', stableId: stable.id, currentReleaseDetection: 'passed', nativeRegistration: 'untouched' };
   await writeFile(path.join(work, 'browser-detection-results.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result, null, 2));
 } finally {

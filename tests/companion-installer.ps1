@@ -5,7 +5,7 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 [xml]$project = Get-Content -LiteralPath (Join-Path $repoRoot 'companion\native-host\PikaNav.MediaHost.csproj')
 $version = [string]$project.Project.PropertyGroup.Version
 $workDir = Join-Path $repoRoot '.verification\companion'
-$installer = Join-Path $workDir "test-installer\PikaDesk-Companion-$version-Setup-x64.exe"
+$installer = Join-Path $workDir "test-installer\PikaSpace-Companion-$version-Setup-x64.exe"
 # Include Unicode and an apostrophe to exercise JSON paths and executable quoting.
 $installDir = Join-Path $workDir "installer-smoke's-$([char]0x732b)"
 $hostPath = Join-Path $installDir 'PikaNav.MediaHost.exe'
@@ -60,10 +60,10 @@ try {
   Assert-True ($manifest.allowed_origins[0] -ceq "chrome-extension://$idOne/") 'Wrong first extension origin.'
   Assert-True ($manifest.allowed_origins[1] -ceq "chrome-extension://$idTwo/") 'Wrong second extension origin.'
   Assert-True (Test-Path -LiteralPath $uninstallKey) 'Windows Apps uninstall entry is missing.'
-  Assert-True ((Get-ItemProperty -LiteralPath $uninstallKey).DisplayName -clike 'PikaDesk · 皮卡桌面 Companion Installer Test*') 'Windows Apps displays the wrong brand.'
+  Assert-True ((Get-ItemProperty -LiteralPath $uninstallKey).DisplayName -clike 'PikaSpace Companion Installer Test*') 'Windows Apps displays the wrong brand.'
   $hostInfo = (Get-Item -LiteralPath $hostPath).VersionInfo
-  Assert-True ($hostInfo.ProductName -ceq 'PikaDesk · 皮卡桌面 Windows Companion') 'The native helper displays the wrong product name.'
-  Assert-True ($hostInfo.FileDescription -ceq 'PikaDesk · 皮卡桌面 Windows Companion') 'The native helper displays the wrong file description.'
+  Assert-True ($hostInfo.ProductName -ceq 'PikaSpace Windows Companion') 'The native helper displays the wrong product name.'
+  Assert-True ($hostInfo.FileDescription -ceq 'PikaSpace Windows Companion') 'The native helper displays the wrong file description.'
 
   $runtime = Get-Content -LiteralPath (Join-Path $installDir 'PikaNav.MediaHost.runtimeconfig.json') -Raw | ConvertFrom-Json
   Assert-True ($null -ne $runtime.runtimeOptions.includedFrameworks) 'The runtime was not bundled.'
@@ -94,7 +94,12 @@ try {
   # argument. Unpacked records do not cache their manifest; read it on disk.
   $fixtureProfile = Join-Path $chromeFixture 'Default'
   New-Item -ItemType Directory -Path $fixtureProfile -Force | Out-Null
-  $fixturePrefs = @{ extensions = @{ settings = @{ $idOne = @{ path = (Join-Path $repoRoot 'releases\PikaNav-0.2.0\extension'); state = 1 } } } }
+  $fixtureExtension = Join-Path $workDir 'installer-extension-fixture'
+  New-Item -ItemType Directory -Path $fixtureExtension -Force | Out-Null
+  Copy-Item -LiteralPath (Join-Path $repoRoot 'public\manifest.json') -Destination (Join-Path $fixtureExtension 'manifest.json') -Force
+  Copy-Item -LiteralPath (Join-Path $repoRoot 'public\background.js') -Destination (Join-Path $fixtureExtension 'background.js') -Force
+  [IO.File]::WriteAllText((Join-Path $fixtureExtension 'index.html'), '<!doctype html><title>PikaSpace test fixture</title>', (New-Object Text.UTF8Encoding $false))
+  $fixturePrefs = @{ extensions = @{ settings = @{ $idOne = @{ path = $fixtureExtension; state = 1 } } } }
   $fixtureJson = $fixturePrefs | ConvertTo-Json -Depth 8
   [IO.File]::WriteAllText((Join-Path $fixtureProfile 'Secure Preferences'), $fixtureJson, (New-Object Text.UTF8Encoding $false))
   Assert-True ((Run-Setup '' 'install-auto-detect.log' $chromeFixture) -eq 0) 'Automatic installation failed.'

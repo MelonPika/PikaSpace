@@ -42,12 +42,12 @@ test('release identity is persistent and valid', () => {
   assert.throws(() => extensionIdFromKey('not a public key'));
 });
 
-test('detects legacy and rebranded copies across profiles without modifying preferences', async () => {
+test('detects PikaSpace copies across profiles without modifying preferences', async () => {
   const f = await fixture();
   try {
     const unpacked = path.join(f.directory, 'unpacked');
     const installed = path.join(f.data, 'Profile 2', 'Extensions', id('b'), '1.0.0_0');
-    await extension(unpacked, { name: "PikaNav", key: undefined });
+    await extension(unpacked, { key: undefined });
     await extension(installed);
     const first = await preferences(f.data, 'Default', { [id('a')]: { path: unpacked, state: 1 } });
     const second = await preferences(f.data, 'Profile 2', { [id('b')]: { path: `${id('b')}/1.0.0_0`, state: 1 } }, 'Secure Preferences');

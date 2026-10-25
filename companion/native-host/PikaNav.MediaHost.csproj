@@ -7,11 +7,11 @@
     <UseWinRT>true</UseWinRT>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
-    <Version>0.2.1</Version>
-    <AssemblyTitle>PikaDesk · 皮卡桌面 Windows Companion</AssemblyTitle>
-    <Product>PikaDesk · 皮卡桌面 Windows Companion</Product>
-    <Company>PikaDesk</Company>
-    <Title>PikaDesk · 皮卡桌面 Windows Companion</Title>
-    <Description>On-demand local media and system metrics for PikaDesk · 皮卡桌面.</Description>
+    <Version>1.0.0</Version>
+    <AssemblyTitle>PikaSpace Windows Companion</AssemblyTitle>
+    <Product>PikaSpace Windows Companion</Product>
+    <Company>PikaSpace</Company>
+    <Title>PikaSpace Windows Companion</Title>
+    <Description>On-demand local media and system metrics for PikaSpace.</Description>
   </PropertyGroup>
 </Project>

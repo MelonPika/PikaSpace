@@ -1,8 +1,8 @@
 <a id="top"></a>
 
 <div align="center">
-  <img src="docs/assets/mascot-256.png" alt="PikaDesk mascot" width="140" />
-  <h1>PikaDesk · 皮卡桌面</h1>
+  <img src="docs/assets/mascot-256.png" alt="PikaSpace mascot" width="140" />
+  <h1>PikaSpace</h1>
   <p><strong>Your Browser, Your Workspace.</strong></p>
   <p>
     <kbd>Chrome · Manifest V3</kbd>
@@ -23,7 +23,7 @@ A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls,
 <details>
 <summary>🖼️ Preview</summary>
 
-![PikaDesk dashboard with search, favorites, clock, notes, and tasks](docs/assets/dashboard.webp)
+![PikaSpace dashboard with search, favorites, clock, notes, and tasks](docs/assets/dashboard.webp)
 
 Actual extension capture with example notes and tasks. [View Chinese appearance settings](docs/assets/settings-zh.webp).
 
@@ -37,17 +37,17 @@ Actual extension capture with example notes and tasks. [View Chinese appearance 
 
 **Using a packaged build requires no Node.js, npm, local server, or Windows companion.**
 
-A packaged download has not yet been published on [GitHub Releases](https://github.com/MelonPika/PikaSpace/releases). If you have a supplied `PikaDesk-1.0.1.zip`, follow these steps. If you have the source code, [build it first](#development).
+A packaged download has not yet been published on [GitHub Releases](https://github.com/MelonPika/PikaSpace/releases). If you have a supplied `PikaSpace-1.0.0.zip`, follow these steps. If you have the source code, [build it first](#development).
 
 1. Extract the ZIP into a permanent folder.
 2. Open `chrome://extensions/` in desktop Chrome.
 3. Turn on **Developer mode** and click **Load unpacked**.
-4. Select **`PikaDesk-1.0.1/extension`**, the folder containing `manifest.json`.
+4. Select **`PikaSpace-1.0.0/extension`**, the folder containing `manifest.json`.
 5. Open a new tab and accept Chrome's new-tab change if prompted.
 
 Keep the extracted folder in place. GitHub's **Code → Download ZIP** downloads source code, which needs a build step. There is no published Chrome Web Store listing; Windows desktop Chrome is the primary verified target.
 
-See the [installation guide](docs/INSTALL.md) for the package structure and migration instructions.
+See the [installation guide](docs/INSTALL.md) for the package structure and setup details.
 
 <a id="quick-start"></a>
 
@@ -74,7 +74,7 @@ Settings save automatically. **Focus** temporarily hides widgets and favorites.
 | **Desktop integration** | Optional Windows desktop music controls and CPU, RAM, and fixed-disk information. |
 | **Backups** | Export and import settings, favorites, widget content, profile, wallpaper, and widget order. |
 
-Calendar is disabled in the current release. Its source and existing backup data are preserved for compatibility.
+Calendar is not included in 1.0.0. Reference source for future development is kept separately.
 
 <a id="windows-companion"></a>
 
@@ -82,7 +82,7 @@ Calendar is disabled in the current release. Its source and existing backup data
 
 Browser music works without the companion. Install it for desktop apps, such as Spotify, and system information.
 
-Run the separately supplied `PikaDesk-Companion-0.2.1-Setup-x64.exe`, keep **Connect automatically** selected, then refresh the dashboard.
+Run the separately supplied `PikaSpace-Companion-1.0.0-Setup-x64.exe`, keep **Connect automatically** selected, then refresh the dashboard.
 
 The helper targets **Windows 10 version 2004 or later / Windows 11, x64**. Its runtime is included, no administrator access is needed, and Chrome starts it on demand. The installer is currently unsigned. GPU readings are unavailable.
 
@@ -94,9 +94,9 @@ See [setup and troubleshooting](docs/COMPANION.md) or the [native-host guide](co
 
 Notes, tasks, profile images, wallpaper, and widget order stay on the device. Small preference collections may use Chrome sync, controlled by your browser account.
 
-Use **Settings → Data & Backup** to export before reinstalling or changing profiles. New backups use `pikadesk-settings.json`; older `pikanav-settings.json` files still import.
+Use **Settings → Data & Backup** to export before reinstalling or changing profiles. Backups use `pikaspace-settings.json`.
 
-Search suggestions, weather, news, favicons, voice search, and media artwork can contact external services. PikaDesk has no product account, advertising, analytics, or telemetry endpoint. See [privacy and permissions](docs/PRIVACY.md) for the data flows.
+Search suggestions, weather, news, favicons, voice search, and media artwork can contact external services. PikaSpace has no product account, advertising, analytics, or telemetry endpoint. See [privacy and permissions](docs/PRIVACY.md) for the data flows.
 
 <a id="updating"></a>
 
@@ -104,7 +104,7 @@ Search suggestions, weather, news, favicons, voice search, and media artwork can
 
 Export a backup, replace the existing extension folder's contents with the new package's `extension` contents, then click **Reload** at `chrome://extensions/`. Open a new tab afterward.
 
-Existing stable-key installations keep ID `abipfjhfejgjkhcpilkfdhbgaepljpki`. The manifest key, storage keys, backup format, and companion protocol remain compatible. Older 0.2.0 / 1.0.0 copies may have different IDs: export from the old copy and import into the new one.
+PikaSpace uses stable extension ID `abipfjhfejgjkhcpilkfdhbgaepljpki`. Keep the manifest key unchanged for future updates.
 
 <a id="troubleshooting"></a>
 
@@ -127,7 +127,7 @@ The companion connects Chrome to Windows desktop media sessions and system metri
 
 **The companion does not connect.**
 
-Rerun its installer, use **Connect automatically**, and refresh PikaDesk. Custom profiles can use manual pairing. See the [companion troubleshooting guide](companion/README.md#troubleshooting).
+Rerun its installer, use **Connect automatically**, and refresh PikaSpace. Custom profiles can use manual pairing. See the [companion troubleshooting guide](companion/README.md#troubleshooting).
 
 </details>
 
@@ -146,7 +146,7 @@ npm run build
 
 Load `dist/` in Chrome to test extension integrations. Use `npm run dev` for the web preview, `npm run package` for local ZIPs, and `npm test` for regression, type, build, and manifest checks.
 
-The [developer guide](docs/DEVELOPMENT.md) covers all commands, browser tests, packaging, project structure, cleanup, and companion development. See also [release notes](docs/RELEASE-NOTES.md), [store preparation](docs/STORE-PREPARATION.md), and [historical archives](docs/archive/README.md).
+The [developer guide](docs/DEVELOPMENT.md) covers all commands, browser tests, packaging, project structure, cleanup, and companion development. See also [release notes](docs/RELEASE-NOTES.md) and [store preparation](docs/STORE-PREPARATION.md).
 
 <a id="credits"></a>
 

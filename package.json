@@ -1,5 +1,5 @@
 {
-  "name": "pikadesk",
+  "name": "pikaspace",
   "description": "A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.",
   "repository": {
     "type": "git",
@@ -10,7 +10,7 @@
     "url": "https://github.com/MelonPika/PikaSpace/issues"
   },
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"

@@ -1,8 +1,8 @@
 <a id="top"></a>
 
 <div align="center">
-  <img src="docs/assets/mascot-256.png" alt="皮卡桌面吉祥物" width="140" />
-  <h1>PikaDesk · 皮卡桌面</h1>
+  <img src="docs/assets/mascot-256.png" alt="PikaSpace 吉祥物" width="140" />
+  <h1>PikaSpace</h1>
   <p><strong>Your Browser, Your Workspace.</strong></p>
   <p>
     <kbd>Chrome · Manifest V3</kbd>
@@ -23,7 +23,7 @@
 <details>
 <summary>🖼️ 桌面预览</summary>
 
-![皮卡桌面：搜索、收藏、时钟、便笺与待办](docs/assets/dashboard.webp)
+![PikaSpace：搜索、收藏、时钟、便笺与待办](docs/assets/dashboard.webp)
 
 扩展实机截图，便笺和任务为示例内容。[查看中文外观设置](docs/assets/settings-zh.webp)。
 
@@ -37,17 +37,17 @@
 
 **使用打包好的扩展，无需安装 Node.js、npm，也不需要启动本地服务或安装 Windows 桌面助手。**
 
-目前 [GitHub Releases](https://github.com/MelonPika/PikaSpace/releases) 尚未发布安装包。拿到提供的 `PikaDesk-1.0.1.zip` 后，可按以下步骤安装；只有源码时，请先[完成构建](#development)。
+目前 [GitHub Releases](https://github.com/MelonPika/PikaSpace/releases) 尚未发布安装包。拿到提供的 `PikaSpace-1.0.0.zip` 后，可按以下步骤安装；只有源码时，请先[完成构建](#development)。
 
 1. 将 ZIP 解压到一个准备长期保留的文件夹。
 2. 在桌面版 Chrome 中打开 `chrome://extensions/`。
 3. 开启 **开发者模式**，点击 **加载已解压的扩展程序**。
-4. 选择 **`PikaDesk-1.0.1/extension`** 文件夹，确认其中有 `manifest.json`。
+4. 选择 **`PikaSpace-1.0.0/extension`** 文件夹，确认其中有 `manifest.json`。
 5. 新建标签页；如 Chrome 提示确认新标签页变更，按提示接受即可。
 
 安装后请保留解压目录。GitHub 的 **Code → Download ZIP** 下载的是源码，需要构建后才能加载。当前没有已发布的 Chrome 应用商店版本；主要验证的平台是 Windows 桌面版 Chrome。
 
-目录结构和旧版迁移方法见[详细安装指南](docs/INSTALL.md)（英文）。
+目录结构和设置方法见[详细安装指南](docs/INSTALL.md)（英文）。
 
 <a id="quick-start"></a>
 
@@ -74,7 +74,7 @@
 | **桌面集成** | 按需连接 Windows 桌面音乐，查看 CPU、内存和本地磁盘信息。 |
 | **备份** | 导出、导入设置、收藏、组件内容、个人资料、壁纸与组件顺序。 |
 
-当前版本未启用日历。相关源码和已有备份中的日历数据继续保留，以兼容旧版本。
+1.0.0 不包含日历功能，开发参考源码单独保留。
 
 <a id="windows-companion"></a>
 
@@ -82,7 +82,7 @@
 
 浏览器网页音乐不需要桌面助手。要连接 Spotify 等桌面应用或查看系统信息时，再按需安装即可。
 
-运行单独提供的 `PikaDesk-Companion-0.2.1-Setup-x64.exe`，保持 **Connect automatically**（自动连接），安装后刷新桌面。
+运行单独提供的 `PikaSpace-Companion-1.0.0-Setup-x64.exe`，保持 **Connect automatically**（自动连接），安装后刷新桌面。
 
 助手面向 **Windows 10 2004 及以上 / Windows 11，x64**，已包含运行时，无需管理员权限，由 Chrome 按需启动。当前安装程序尚未签名，暂不提供 GPU 读数。
 
@@ -94,9 +94,9 @@
 
 便笺、待办、头像、壁纸和组件顺序保存在设备上。小体积偏好数据可以使用 Chrome 同步，是否同步由浏览器账号设置决定。
 
-重新安装或切换 Chrome 配置前，请到 **设置 → 数据与备份** 导出备份。新备份名为 `pikadesk-settings.json`，以前的 `pikanav-settings.json` 也能继续导入。
+重新安装或切换 Chrome 配置前，请到 **设置 → 数据与备份** 导出备份。备份文件名为 `pikaspace-settings.json`。
 
-搜索建议、天气、新闻、网站图标、语音搜索和媒体封面可能访问外部服务。皮卡桌面没有产品账号、广告、分析统计或遥测服务。具体数据流向见[隐私与权限说明](docs/PRIVACY.md)（英文）。
+搜索建议、天气、新闻、网站图标、语音搜索和媒体封面可能访问外部服务。PikaSpace 没有产品账号、广告、分析统计或遥测服务。具体数据流向见[隐私与权限说明](docs/PRIVACY.md)（英文）。
 
 <a id="updating"></a>
 
@@ -104,7 +104,7 @@
 
 先导出备份，再用新包中 `extension` 的内容替换原扩展目录的文件，到 `chrome://extensions/` 点击 **重新加载**，然后新建标签页。
 
-使用稳定公钥的现有版本继续保持 ID：`abipfjhfejgjkhcpilkfdhbgaepljpki`。公钥、存储键、备份格式和桌面助手协议均保持兼容。旧版 0.2.0 / 1.0.0 可能使用不同 ID，需要先从旧版导出，再在新版导入。
+PikaSpace 使用稳定扩展 ID：`abipfjhfejgjkhcpilkfdhbgaepljpki`。后续更新请保持扩展公钥不变。
 
 <a id="troubleshooting"></a>
 
@@ -123,11 +123,11 @@
 
 **为什么桌面音乐需要助手？**
 
-助手通过原生消息通信，让 Chrome 访问 Windows 桌面媒体会话和系统信息。使用皮卡桌面本身及浏览器音乐时不必安装。
+助手通过原生消息通信，让 Chrome 访问 Windows 桌面媒体会话和系统信息。使用 PikaSpace 本身及浏览器音乐时不必安装。
 
 **桌面助手无法连接。**
 
-重新运行安装程序，使用 **Connect automatically**，然后刷新皮卡桌面。特殊 Chrome 配置可以手动配对。更多方法见[助手故障排查](companion/README.md#troubleshooting)（英文）。
+重新运行安装程序，使用 **Connect automatically**，然后刷新 PikaSpace。特殊 Chrome 配置可以手动配对。更多方法见[助手故障排查](companion/README.md#troubleshooting)（英文）。
 
 </details>
 
@@ -146,7 +146,7 @@ npm run build
 
 在 Chrome 中加载 `dist/` 可测试扩展集成。`npm run dev` 用于网页预览，`npm run package` 生成本地 ZIP，`npm test` 执行回归测试、类型检查、构建与扩展清单验证。
 
-完整命令、浏览器测试、打包、项目结构、清理和助手开发说明见[开发指南](docs/DEVELOPMENT.md)。另见[版本说明](docs/RELEASE-NOTES.md)、[商店发布准备](docs/STORE-PREPARATION.md)和[历史归档](docs/archive/README.md)（英文）。
+完整命令、浏览器测试、打包、项目结构、清理和助手开发说明见[开发指南](docs/DEVELOPMENT.md)。另见[版本说明](docs/RELEASE-NOTES.md)和[商店发布准备](docs/STORE-PREPARATION.md)（英文）。
 
 <a id="credits"></a>
 

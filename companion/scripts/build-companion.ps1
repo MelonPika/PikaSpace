@@ -101,7 +101,7 @@ if ($TestBuild) { $compilerArgs += '/DInstallerTestMode=1' }
 & $InnoSetupCompilerPath @compilerArgs $installerSource
 if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed.' }
 
-$installer = Join-Path $releaseDir "PikaDesk-Companion-$version-Setup-x64.exe"
+$installer = Join-Path $releaseDir "PikaSpace-Companion-$version-Setup-x64.exe"
 Copy-Item -LiteralPath (Join-Path $repoRoot 'companion\installer\INSTALL.txt') -Destination (Join-Path $releaseDir 'INSTALL.txt') -Force
 $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath (Join-Path $releaseDir 'SHA256SUMS.txt') -Encoding Ascii -Value "$hash  $([IO.Path]::GetFileName($installer))"

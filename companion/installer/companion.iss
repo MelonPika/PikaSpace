@@ -19,11 +19,11 @@
 #endif
 #ifdef InstallerTestMode
   #define ProductId "PikaNav.WindowsCompanion.InstallerTest"
-  #define ProductName "PikaDesk · 皮卡桌面 Companion Installer Test"
+  #define ProductName "PikaSpace Companion Installer Test"
   #define HostRegistryKey "Software\PikaNav\InstallerTests\NativeMessagingHosts\com.pikanav.media"
 #else
   #define ProductId "PikaNav.WindowsCompanion"
-  #define ProductName "PikaDesk · 皮卡桌面 Windows Companion"
+  #define ProductName "PikaSpace Windows Companion"
   #define HostRegistryKey "Software\Google\Chrome\NativeMessagingHosts\com.pikanav.media"
 #endif
 
@@ -31,11 +31,12 @@
 AppId={#ProductId}
 AppName={#ProductName}
 AppVersion={#AppVersion}
-AppPublisher=PikaDesk · 皮卡桌面
+VersionInfoVersion={#AppVersion}
+AppPublisher=PikaSpace
 AppPublisherURL=https://github.com/MelonPika/PikaSpace
 AppSupportURL=https://github.com/MelonPika/PikaSpace/issues
 AppUpdatesURL=https://github.com/MelonPika/PikaSpace/releases
-VersionInfoDescription=PikaDesk · 皮卡桌面 Windows Companion Setup
+VersionInfoDescription=PikaSpace Windows Companion Setup
 DefaultDirName={localappdata}\PikaNav\MediaHost
 DisableDirPage=yes
 DisableProgramGroupPage=yes
@@ -44,7 +45,7 @@ MinVersion=10.0.19041
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir={#ReleaseDir}
-OutputBaseFilename=PikaDesk-Companion-{#AppVersion}-Setup-x64
+OutputBaseFilename=PikaSpace-Companion-{#AppVersion}-Setup-x64
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -56,8 +57,8 @@ DisableWelcomePage=no
 UsePreviousAppDir=yes
 
 [Messages]
-WelcomeLabel2=This helper connects PikaDesk · 皮卡桌面 to Windows desktop music and CPU, RAM, and disk information.%n%nIt runs only when Chrome requests it. No startup app or Windows service is installed, and no administrator password is needed.%n%nThe required runtime is included. You do not need to install .NET or run any commands.
-FinishedLabel=The PikaDesk · 皮卡桌面 Windows Companion is installed.%n%nReturn to PikaDesk · 皮卡桌面 and refresh the dashboard. Desktop music and system information are now available when supported by Windows and the media app.%n%nYou can remove the companion from Windows Settings > Apps at any time.
+WelcomeLabel2=This helper connects PikaSpace to Windows desktop music and CPU, RAM, and disk information.%n%nIt runs only when Chrome requests it. No startup app or Windows service is installed, and no administrator password is needed.%n%nThe required runtime is included. You do not need to install .NET or run any commands.
+FinishedLabel=The PikaSpace Windows Companion is installed.%n%nReturn to PikaSpace and refresh the dashboard. Desktop music and system information are now available when supported by Windows and the media app.%n%nYou can remove the companion from Windows Settings > Apps at any time.
 
 [Files]
 Source: "{#DetectorSource}"; Flags: dontcopy
@@ -169,23 +170,23 @@ var
   Detected, Saved: String;
 begin
   DetectAgainButton.Enabled := False;
-  DetectStatus.Caption := 'Looking for PikaDesk · 皮卡桌面 in Chrome...';
+  DetectStatus.Caption := 'Looking for PikaSpace in Chrome...';
   WizardForm.Refresh;
   Detected := DetectExtensionIds;
   Saved := GetPreviousData('ExtensionIds', '');
   if not ExtensionIdsAreValid(Saved) then Saved := '';
   if Detected <> '' then begin
     ExtensionPage.Values[0] := MergeExtensionIds(MergeExtensionIds(Detected, '{#DefaultExtensionIds}'), StableDefaultId);
-    DetectStatus.Caption := 'PikaDesk · 皮卡桌面 was found in Chrome. Click Next to connect automatically.';
+    DetectStatus.Caption := 'PikaSpace was found in Chrome. Click Next to connect automatically.';
   end else if Saved <> '' then begin
     ExtensionPage.Values[0] := MergeExtensionIds(Saved, StableDefaultId);
-    DetectStatus.Caption := 'Your previous PikaDesk · 皮卡桌面 connection was found and will be kept.';
+    DetectStatus.Caption := 'Your previous PikaSpace connection was found and will be kept.';
   end else if '{#DefaultExtensionIds}' <> '' then begin
     ExtensionPage.Values[0] := MergeExtensionIds('{#DefaultExtensionIds}', StableDefaultId);
-    DetectStatus.Caption := 'This installer already knows your PikaDesk · 皮卡桌面 extension.';
+    DetectStatus.Caption := 'This installer already knows your PikaSpace extension.';
   end else begin
     ExtensionPage.Values[0] := StableDefaultId;
-    DetectStatus.Caption := 'Ready for the current PikaDesk · 皮卡桌面 portable release. If you use an older unpacked copy, load it in Chrome and click Detect again.';
+    DetectStatus.Caption := 'Ready for PikaSpace. Load the extension in Chrome and click Detect again if it is not listed.';
   end;
   AutomaticPairing := ExtensionIdsAreValid(ExtensionPage.Values[0]);
   DetectAgainButton.Enabled := True;
@@ -193,8 +194,8 @@ end;
 
 procedure InitializeWizard;
 begin
-  PairingMode := CreateInputOptionPage(wpWelcome, 'Connect PikaDesk · 皮卡桌面',
-    'Setup can connect to your PikaDesk · 皮卡桌面 extension automatically.',
+  PairingMode := CreateInputOptionPage(wpWelcome, 'Connect PikaSpace',
+    'Setup can connect to your PikaSpace extension automatically.',
     'Choose how to connect:', True, False);
   PairingMode.Add('Connect automatically (recommended)');
   PairingMode.Add('Enter extension IDs manually');
@@ -214,9 +215,9 @@ begin
   DetectAgainButton.Caption := 'Detect again';
   DetectAgainButton.OnClick := @RefreshDetection;
   ExtensionPage := CreateInputQueryPage(PairingMode.ID,
-    'Connect your PikaDesk · 皮卡桌面 extension', 'Pair this helper with PikaDesk · 皮卡桌面 in Chrome.',
-    'Open chrome://extensions and turn on Developer mode. Find PikaDesk · 皮卡桌面 and copy its ID, then paste it below. This lets only your selected extension use the helper.');
-  ExtensionPage.Add('PikaDesk · 皮卡桌面 extension &ID:', False);
+    'Connect your PikaSpace extension', 'Pair this helper with PikaSpace in Chrome.',
+    'Open chrome://extensions and turn on Developer mode. Find PikaSpace and copy its ID, then paste it below. This lets only your selected extension use the helper.');
+  ExtensionPage.Add('PikaSpace extension &ID:', False);
   ExtensionPage.Values[0] := ExpandConstant('{param:EXTENSIONID|}');
   if ExtensionPage.Values[0] <> '' then begin
     PairingMode.SelectedValueIndex := 1;
@@ -240,7 +241,7 @@ begin
   if CurPageID = ExtensionPage.ID then begin
     Result := ExtensionIdsAreValid(ExtensionPage.Values[0]);
     if not Result then
-      SuppressibleMsgBox('Paste the 32 lowercase letters shown as PikaDesk · 皮卡桌面''s ID at chrome://extensions. For multiple PikaDesk · 皮卡桌面 installations, separate their IDs with commas (maximum 10).', mbError, MB_OK, IDOK);
+      SuppressibleMsgBox('Paste the 32 lowercase letters shown as PikaSpace''s ID at chrome://extensions. For multiple PikaSpace installations, separate their IDs with commas (maximum 10).', mbError, MB_OK, IDOK);
   end;
 end;
 
@@ -259,7 +260,7 @@ var
 begin
   Result := '';
   if not ExtensionIdsAreValid(ExtensionPage.Values[0]) then begin
-    Result := 'A valid PikaDesk · 皮卡桌面 extension ID is required. Run Setup again and paste the ID from chrome://extensions.';
+    Result := 'A valid PikaSpace extension ID is required. Run Setup again and paste the ID from chrome://extensions.';
     Exit;
   end;
   SplitExtensionIds(ExtensionPage.Values[0], Ids);
@@ -268,7 +269,7 @@ begin
     if I > 0 then Origins := Origins + ',';
     Origins := Origins + '"chrome-extension://' + Trim(Ids[I]) + '/"';
   end;
-  Manifest := '{"name":"com.pikanav.media","description":"PikaDesk · 皮卡桌面 Windows Companion",' +
+  Manifest := '{"name":"com.pikanav.media","description":"PikaSpace Windows Companion",' +
     '"path":"' + JsonEscape(ExpandConstant('{app}\PikaNav.MediaHost.exe')) +
     '","type":"stdio","allowed_origins":[' + Origins + ']}';
   SetArrayLength(Lines, 1);

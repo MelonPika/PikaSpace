@@ -167,7 +167,7 @@ function formatGb(value) {
 }
 
 function showError(error) {
-  setStatus(error || "Unable to connect to PikaDesk · 皮卡桌面 Windows Companion.", "error");
+  setStatus(error || "Unable to connect to PikaSpace Windows Companion.", "error");
 }
 
 function setStatus(message, tone) {

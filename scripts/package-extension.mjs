@@ -8,7 +8,7 @@ import { createHash } from "node:crypto";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const manifest = await validateExtension(dist);
-const name = `PikaDesk-${manifest.version}`;
+const name = `PikaSpace-${manifest.version}`;
 const release = path.join(root, "releases", name);
 // Only this generated release directory can be replaced by recursive cleanup.
 if (!release.startsWith(root + path.sep) || path.dirname(release) !== path.join(root, "releases")) {

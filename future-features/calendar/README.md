@@ -1,9 +1,7 @@
-# Calendar — postponed beyond 1.0
+# Calendar — future feature
 
-The original Calendar implementation and its overview polling are preserved here as source references with `.disabled` extensions. These files are outside the application entry graph, are not runnable modules, and are never shipped. Calendar's CSS is preserved alongside them.
+This directory contains development reference source with .disabled extensions. It is outside the application entry graph and is not shipped in PikaSpace 1.0.0.
 
-Version 1.0 has no Calendar widget, settings entry, event summary, event notifications, Google identity permission, OAuth client, Calendar host permissions, token operations, or Calendar refresh timers. The clock and date widget remains available.
+The release has no Calendar widget, settings entry, event summary, event notifications, Google identity permission, OAuth client, Calendar host permissions, or refresh timers. The clock and date widget remains available.
 
-Existing `widgetData.events`, legacy widget preferences, and the local `pikanav.googleCalendarIds` key are retained. They are dormant. Import/export keeps event data. No token revocation or deletion of the user's Calendar data is performed during upgrade.
-
-Future implementation must restore types/imports and review this reference before use. It requires fresh OAuth/store configuration, permission review, cancellation handling, and its own complete test coverage. Preserving source does not certify the postponed feature as release-ready.
+Future implementation needs fresh OAuth/store configuration, permission review, cancellation handling, restored types/imports, and its own test coverage. Reference source does not imply a supported release feature.

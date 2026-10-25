@@ -62,7 +62,7 @@ export function createDashboardStorage(api, webStorage, onStatus = (_message) =>
     const latest = Number(localValue?._pikanavSavedAt || 0) >= Number(syncValue?._pikanavSavedAt || 0)
       ? localValue ?? syncValue ?? {} : syncValue;
     if (latest === syncValue && latest && typeof latest === "object") {
-      // Migrate legacy or newer synced settings once, without creating a new revision.
+      // Persist synced settings once, without creating a new revision.
       try { await write(key, latest); } catch { /* Existing sync data remains intact. */ }
     }
     return latest;

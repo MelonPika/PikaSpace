@@ -10,7 +10,7 @@ export async function validateExtension(directory) {
   assert.match(extensionIdFromKey(manifest.key), /^[a-p]{32}$/);
   const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.version, pkg.version, "Package and manifest versions must match");
-  assert.equal(manifest.name, "PikaDesk · 皮卡桌面");
+  assert.equal(manifest.name, "PikaSpace");
   assert.equal(extensionIdFromKey(manifest.key), "abipfjhfejgjkhcpilkfdhbgaepljpki", "The portable release identity must remain stable");
   assert.ok(!manifest.oauth2, "Calendar OAuth must not ship in 1.0");
   assert.ok(!manifest.permissions.includes("identity"));

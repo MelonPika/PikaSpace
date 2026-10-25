@@ -1,6 +1,6 @@
 # README visual assets
 
-Captured on 25 October 2026 from the unmodified PikaDesk · 皮卡桌面 1.0.1 extension in Chrome, using a disposable profile and the normal settings interface.
+Captured on 25 October 2026 from the unmodified PikaSpace 1.0.0 extension in Chrome, using a disposable profile and the normal settings interface.
 
 | File | Capture |
 | --- | --- |
@@ -9,7 +9,7 @@ Captured on 25 October 2026 from the unmodified PikaDesk · 皮卡桌面 1.0.1 e
 
 Both images are 1600 × 1120 WebP captures at quality 90. They total less than 100 KB. Notes and tasks are example content entered through the UI; the captures contain no personal user data. Media sessions, metrics, network results, and interface elements were not mocked or composited.
 
-The logo source is the user-supplied [pikadesk-mascot.png](pikadesk-mascot.png), retained byte-for-byte at 1254 × 1254 pixels with its original alpha transparency. [mascot-256.png](mascot-256.png) is a resized derivative for README presentation. The artwork is not redrawn.
+The logo source is the user-supplied [pikaspace-mascot.png](pikaspace-mascot.png), retained byte-for-byte at 1254 × 1254 pixels with its original alpha transparency. [mascot-256.png](mascot-256.png) is a resized derivative for README presentation. The artwork is not redrawn.
 
 To refresh the images, load a current build into an isolated Chrome profile, configure the shown widgets through Settings, enter example notes/tasks, and capture the dashboard and appearance panel. Keep the original aspect ratio and check text legibility after compression.
 
