@@ -1,12 +1,12 @@
-# PikaNav Windows Companion 0.2.1
+# PikaDesk · 皮卡桌面 Windows Companion 0.2.1
 
 The optional Windows companion provides desktop media metadata/controls and CPU, physical RAM, and fixed-disk usage. GPU readings remain unavailable. Browser music does not require this companion.
 
 ## Install, update, and remove
 
-Distribute `releases/companion/PikaNav-Companion-0.2.1-Setup-x64.exe` with `INSTALL.txt` and `SHA256SUMS.txt`. Users run the EXE, keep **Connect automatically** selected, install, and refresh the dashboard. There is normally no ID to copy. The runtime is included; no SDK, shared .NET runtime, command line, or administrator permission is required. The target is Windows 10 version 2004 or later / Windows 11 on x64.
+Distribute `releases/companion/PikaDesk-Companion-0.2.1-Setup-x64.exe` with `INSTALL.txt` and `SHA256SUMS.txt`. Users run the EXE, keep **Connect automatically** selected, install, and refresh the dashboard. There is normally no ID to copy. The runtime is included; no SDK, shared .NET runtime, command line, or administrator permission is required. The target is Windows 10 version 2004 or later / Windows 11 on x64.
 
-Installation belongs to the current Windows user, under `%LOCALAPPDATA%\PikaNav\MediaHost`. Setup registers `com.pikanav.media` under that user's Chrome NativeMessagingHosts key. The manifest authorizes only exact paired extension IDs, with no wildcard origins. Automatic mode reads extension records from `Preferences` and `Secure Preferences` in standard Chrome Stable/Beta/Dev/Canary/Testing profile folders. It checks existing extension files for the PikaNav name, MV3/new-tab/native-messaging configuration, and the expected host commands in the background script. Disabled, missing, malformed, unrelated, or name-only matches are skipped. This is best-effort local discovery rather than a publisher-signature verification. It does not edit Chrome files or inspect history/cookie databases.
+Installation belongs to the current Windows user, under `%LOCALAPPDATA%\PikaNav\MediaHost`. Setup registers `com.pikanav.media` under that user's Chrome NativeMessagingHosts key. The manifest authorizes only exact paired extension IDs, with no wildcard origins. Automatic mode reads extension records from `Preferences` and `Secure Preferences` in standard Chrome Stable/Beta/Dev/Canary/Testing profile folders. It checks existing extension files for the PikaDesk · 皮卡桌面 or legacy PikaNav name, MV3/new-tab/native-messaging configuration, and the expected host commands in the background script. Disabled, missing, malformed, unrelated, or name-only matches are skipped. This is best-effort local discovery rather than a publisher-signature verification. It does not edit Chrome files or inspect history/cookie databases.
 
 The setup-only detector is a small hidden executable using the .NET Framework included with supported Windows versions. It is extracted to Setup's temporary folder and is not installed as another background process. If an old unpacked copy was just loaded, close/reopen Chrome to save the preference record and click **Detect again**. For custom data locations, administrators can pass `/CHROMEDATADIR="C:\Custom\Chrome User Data"`, or users can choose manual pairing. Up to 10 comma-separated IDs are supported. More than 10 discovered IDs causes fallback rather than silently dropping entries.
 
@@ -14,7 +14,7 @@ Setup also includes the stable portable-release ID `abipfjhfejgjkhcpilkfdhbgaepl
 
 **Moving to portable extension 1.0.1:** export settings from the old extension before switching, then import the backup into the new one. Chrome stores extension data by ID. Older release folders are preserved, and updating only the companion continues to support the existing ID. Do not regenerate the public key for future portable releases. A Chrome Web Store listing gets its own assigned identity; obtain its public key and configure the store build/companion before publication.
 
-Run a newer EXE to update or repair. Pairing is remembered and remains editable. If files are in use, close Chrome before updating. Remove the helper in Windows Settings > Apps > PikaNav Windows Companion. Uninstall removes installer-owned files, bundled runtime, Chrome manifest, and the registration if it still points to this installation. Diagnostic logs may remain. Dashboard settings are stored by the extension and are unaffected.
+Run a newer EXE to update or repair. Pairing is remembered and remains editable. If files are in use, close Chrome before updating. Remove the helper in Windows Settings > Apps > PikaDesk · 皮卡桌面 Windows Companion. Uninstall removes installer-owned files, bundled runtime, Chrome manifest, and the registration if it still points to this installation. Diagnostic logs may remain. Dashboard settings are stored by the extension and are unaffected.
 
 ## Resource use
 

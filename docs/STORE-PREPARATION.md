@@ -1,16 +1,18 @@
-# Chrome Web Store preparation — PikaNav 1.0
+# Chrome Web Store preparation — PikaDesk · 皮卡桌面 1.0
 
 This records preparation, not submission or Google approval. Nothing has been published.
 
 ## Prepared
 
-Manifest V3, version 1.0.1, bundled scripts/styles, local module worker, static new-tab override, explicit CSP, 16/48/128 PNG branding icons, privacy/install/release documents, and third-party notices are prepared. `PikaNav-1.0.1-chrome-web-store.zip` has the manifest at its root and contains runtime files only. No native binaries, test data, source maps, OAuth client, or personal settings are included.
+Manifest V3, version 1.0.1, bundled scripts/styles, local module worker, static new-tab override, explicit CSP, 16/48/128 PNG branding icons, privacy/install/release documents, and third-party notices are prepared. `PikaDesk-1.0.1-chrome-web-store.zip` has the manifest at its root and contains runtime files only. No native binaries, test data, source maps, OAuth client, or personal settings are included.
 
 The portable manifest's public key fixes its unpacked ID. Before store publication, obtain the assigned store public key/ID from the developer dashboard and configure the store build and companion for that identity. The local portable key is not a reserved Chrome Web Store identity. Existing local settings require export/import if the ID changes.
 
 Suggested single purpose: **A personal new-tab dashboard for web search, daily shortcuts, notes, tasks, and useful widgets.**
 
-Name: **PikaNav**. Description: **Your personal new-tab dashboard with search, favorites, notes, tasks, weather, and browser media controls.**
+Name: **PikaDesk · 皮卡桌面**. Description: **A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.**
+
+Tagline: **Your Browser, Your Workspace.** Source/support: [PikaSpace](https://github.com/MelonPika/PikaSpace) · [Issues](https://github.com/MelonPika/PikaSpace/issues).
 
 Do not advertise Calendar as available, filename search as reverse-image recognition, or the Windows companion as bundled.
 

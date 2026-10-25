@@ -1,5 +1,7 @@
 # PikaNav 1.0.0 — final audit and release report
 
+Historical audit of the release before the rebrand to **PikaDesk · 皮卡桌面**. Product names and artifact paths below describe that original release and remain unchanged as evidence. Current project: [PikaSpace](https://github.com/MelonPika/PikaSpace).
+
 Historical note (25 October 2026): the source snapshot and verification files referenced below were consolidated into the ZIPs listed in [archive documentation](archive/README.md). The companion source now lives under `companion/`; the original release artifacts remain unchanged. Paths elsewhere in this report describe the layout at audit time.
 
 Date: **24 October 2026** (Asia/Singapore). Status: **READY WITH LIMITATIONS**.

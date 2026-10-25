@@ -1,7 +1,11 @@
 
-# PikaNav 1.0
+# PikaDesk · 皮卡桌面
 
-A Chrome Manifest V3 extension that replaces the new-tab page with a customizable dashboard.
+**Your Browser, Your Workspace.**
+
+[Source code](https://github.com/MelonPika/PikaSpace) · [Releases](https://github.com/MelonPika/PikaSpace/releases) · [Help and issues](https://github.com/MelonPika/PikaSpace/issues)
+
+A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace. Built as a Chrome Manifest V3 extension.
 
 ## Project folders
 
@@ -21,7 +25,9 @@ A Chrome Manifest V3 extension that replaces the new-tab page with a customizabl
 
 ## Install a release
 
-Extract `releases/PikaNav-1.0.1.zip`, open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and choose the extracted `PikaNav-1.0.1/extension` folder. Keep that folder in place. No Node.js, local server, or companion app is needed for installation.
+Extract `releases/PikaDesk-1.0.1.zip`, open `chrome://extensions`, enable Developer mode, click **Load unpacked**, and choose the extracted `PikaDesk-1.0.1/extension` folder. Keep that folder in place. No Node.js, local server, or companion app is needed for installation.
+
+The rebrand retains the existing manifest key and stable extension ID, so updating an existing stable-ID installation keeps its settings. Storage keys, backup format, and companion protocol remain compatible. Older release artifacts and historical audit evidence keep their original filenames. The repository is intentionally named **PikaSpace**.
 
 Version 1.0.1 introduces a stable ID for portable releases. Before switching from 1.0.0 or 0.2.0, export **Settings > Data & Backup > Export settings** in the old extension, load the new version, and import the backup. Chrome stores data by extension ID. You may keep your existing extension and simply install the updated companion; it detects older unpacked copies automatically.
 
@@ -52,7 +58,7 @@ Calendar is postponed to a future version. Original source is preserved under `f
 
 ## Companion development
 
-Users can run `releases/companion/PikaNav-Companion-0.2.1-Setup-x64.exe` to install the optional Windows helper. It includes its runtime, needs no administrator access or commands, and runs only when Chrome requests it. Choose **Connect automatically**: Setup detects existing PikaNav copies in Chrome and already knows the stable portable-release ID. Manual entry is available for unusual profiles. The companion is distributed separately from the dashboard ZIP.
+Users can run `releases/companion/PikaDesk-Companion-0.2.1-Setup-x64.exe` to install the optional Windows helper. It includes its runtime, needs no administrator access or commands, and runs only when Chrome requests it. Choose **Connect automatically**: Setup detects existing PikaDesk · 皮卡桌面 copies in Chrome and already knows the stable portable-release ID. Manual entry is available for unusual profiles. The companion is distributed separately from the dashboard ZIP.
 
 Run `npm run package:companion` to build the installer, or see [companion packaging and verification](docs/COMPANION.md) for preconfigured extension IDs, updates, and tests. See [the Windows native companion](companion/README.md) for the protocol and developer tools.
 

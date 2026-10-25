@@ -18,7 +18,7 @@ await mkdir(work, { recursive: true });
 await mkdir(downloads, { recursive: true });
 await cp(extension, clone, { recursive: true });
 const manifest = JSON.parse(await readFile(path.join(clone, 'manifest.json'), 'utf8'));
-manifest.name = 'PikaNav isolated media test';
+manifest.name = 'PikaDesk isolated media test';
 // Keep the isolated no-native test copy distinct from the stable-ID release.
 delete manifest.key;
 manifest.permissions = manifest.permissions.filter(p => p !== 'nativeMessaging');
@@ -34,7 +34,7 @@ for (let i = 0; i < (wave.length - 44) / 2; i++) wave.writeInt16LE(Math.round(Ma
 const server = http.createServer((req, res) => {
   if (req.url === '/tone.wav') { res.setHeader('Content-Type', 'audio/wav'); res.end(wave); return; }
   res.setHeader('Content-Type', 'text/html');
-  res.end('<!doctype html><title>Independent browser media fixture</title><audio id="player" src="/tone.wav" loop controls></audio><script>navigator.mediaSession.metadata = new MediaMetadata({ title: "Portable media test", artist: "PikaNav fixture", album: "No companion" });</script>');
+  res.end('<!doctype html><title>Independent browser media fixture</title><audio id="player" src="/tone.wav" loop controls></audio><script>navigator.mediaSession.metadata = new MediaMetadata({ title: "Portable media test", artist: "PikaDesk fixture", album: "No companion" });</script>');
 });
 server.listen(0, '127.0.0.1'); await once(server, 'listening');
 const port = server.address().port;
@@ -110,7 +110,7 @@ try {
   async function clickText(session, selector, text) { return evaluate(session, `(() => { const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find(el => el.textContent.trim() === ${JSON.stringify(text)}); if (!el) throw new Error('Missing text ' + ${JSON.stringify(text)}); el.click(); return true; })()`, true); }
   async function input(session, selector, value) { return evaluate(session, `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) throw new Error('Missing input'); Object.getOwnPropertyDescriptor(el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles:true })); return true; })()`); }
   async function key(session, key, extras = {}) { await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key, ...extras }, session); await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key, ...extras }, session); }
-  async function importBackup(session, data) { return evaluate(session, `(() => { const el = document.querySelector('input[accept="application/json"]'); const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(JSON.stringify(data))}], 'backup.json', {type:'application/json'})); el.files = dt.files; el.dispatchEvent(new Event('change', {bubbles:true})); return true; })()`); }
+  async function importBackup(session, data) { return evaluate(session, `(() => { const el = document.querySelector('input[accept="application/json"]'); const dt = new DataTransfer(); dt.items.add(new File([${JSON.stringify(JSON.stringify(data))}], 'pikanav-settings.json', {type:'application/json'})); el.files = dt.files; el.dispatchEvent(new Event('change', {bubbles:true})); return true; })()`); }
   async function imageUpload(session,selector,name='test.png') { return evaluate(session,`(() => { const el=document.querySelector(${JSON.stringify(selector)}); const canvas=document.createElement('canvas'); canvas.width=2; canvas.height=2; const ctx=canvas.getContext('2d'); ctx.fillStyle='#8b5cf6'; ctx.fillRect(0,0,2,2); const raw=atob(canvas.toDataURL('image/png').split(',')[1]); const dt=new DataTransfer(); dt.items.add(new File([Uint8Array.from(raw,c=>c.charCodeAt(0))],${JSON.stringify(name)},{type:'image/png'})); el.files=dt.files; el.dispatchEvent(new Event('change',{bubbles:true})); return true; })()`); }
   async function select(session,selector,value) { return evaluate(session,`(() => { const el=document.querySelector(${JSON.stringify(selector)}); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(el,${JSON.stringify(value)}); el.dispatchEvent(new Event('change',{bubbles:true})); return true; })()`); }
 
@@ -125,7 +125,11 @@ try {
   assert.equal(noAccess.requiresBrowserAccess, true);
   await poll(() => evaluate(page.session, '[...document.querySelectorAll(".music-card button")].some(button => button.textContent === "Enable browser media")'), 'optional media access button');
   console.log('Original portable manifest loads and offers optional site access.');
-  checked('fresh installation and no-companion permission state');
+  assert.equal(await evaluate(page.session, "chrome.runtime.getManifest().name"), "PikaDesk · 皮卡桌面");
+  assert.equal(await evaluate(page.session, "document.title"), "PikaDesk · 皮卡桌面");
+  assert.equal(await evaluate(page.session, 'document.querySelector(".brand-mark").textContent'), "PikaDesk · 皮卡桌面");
+  assert.equal(await evaluate(page.session, 'getComputedStyle(document.querySelector(".brand-mark")).textTransform'), "none");
+  checked('fresh installation, rebranded title and no-companion permission state');
   assert.equal(await evaluate(page.session, 'Boolean(chrome.runtime.getManifest().oauth2)'), false);
   assert.equal(await evaluate(page.session, 'chrome.runtime.getManifest().permissions.includes("identity")'), false);
   const workerTarget = (await send('Target.getTargets')).targetInfos.find(target => target.type === 'service_worker' && target.url.startsWith(`chrome-extension://${original.id}/`));
@@ -329,7 +333,7 @@ try {
   await clickText(page.session, '.settings-sidebar nav button', 'Data & Backup');
   await send('Browser.setDownloadBehavior', { behavior:'allow', downloadPath:downloads });
   await clickText(page.session, '.data-actions button', 'Export settings');
-  const exported = await poll(async () => { try { return JSON.parse(await readFile(path.join(downloads,'pikanav-settings.json'),'utf8')); } catch { return false; } }, 'settings export download');
+  const exported = await poll(async () => { try { return JSON.parse(await readFile(path.join(downloads,'pikadesk-settings.json'),'utf8')); } catch { return false; } }, 'settings export download');
   await writeFile(path.join(work,'exported-backup.json'),JSON.stringify(exported,null,2));
   assert.equal(exported.widgetData.notes, 'Shared across tabs');
   assert.equal(exported.widgetData.events[0].id, 'legacy-event');
@@ -340,7 +344,7 @@ try {
   await importBackup(page.session, {...exported,widgetData:{...exported.widgetData,notes:'Round-trip note'}});
   await click(page.session, '.settings-close');
   await poll(() => evaluate(page.session, 'document.querySelector(".notes-widget textarea").value === "Round-trip note"'), 'backup import');
-  checked('real JSON export and import including dormant events and profile');
+  checked('PikaDesk JSON export and legacy-filename import including dormant events and profile');
   await click(page.session,'button[aria-label="Settings"]');
   await clickText(page.session,'.settings-sidebar nav button','Data & Backup');
   await click(page.session,'.reset-button');
@@ -415,7 +419,7 @@ try {
   const current = await evaluate(dashboard.session, 'chrome.runtime.sendMessage({type:"mediaCommand",command:"getCurrentMedia"})');
   assert.equal(current.backend, 'browser');
   assert.equal(current.title, 'Portable media test');
-  assert.equal(current.artist, 'PikaNav fixture');
+  assert.equal(current.artist, 'PikaDesk fixture');
   assert.equal(current.playbackStatus, 'Playing');
   assert.equal(current.capabilities.next, false);
   assert.ok(current.target.documentId);

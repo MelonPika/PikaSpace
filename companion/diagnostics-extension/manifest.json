@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "PikaNav Media MVP",
-  "description": "Reads and controls Windows desktop media sessions through the PikaNav Windows Companion.",
+  "name": "PikaDesk · 皮卡桌面 Media MVP",
+  "description": "Reads and controls Windows desktop media sessions through the PikaDesk · 皮卡桌面 Windows Companion.",
   "version": "0.1.0",
   "permissions": [
     "nativeMessaging"
@@ -10,7 +10,7 @@
     "service_worker": "service_worker.js"
   },
   "action": {
-    "default_title": "PikaNav Media",
+    "default_title": "PikaDesk · 皮卡桌面 Media",
     "default_popup": "popup.html"
   }
 }

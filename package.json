@@ -1,5 +1,14 @@
 {
-  "name": "pikanav",
+  "name": "pikadesk",
+  "description": "A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MelonPika/PikaSpace.git"
+  },
+  "homepage": "https://github.com/MelonPika/PikaSpace#readme",
+  "bugs": {
+    "url": "https://github.com/MelonPika/PikaSpace/issues"
+  },
   "private": true,
   "version": "1.0.1",
   "type": "module",

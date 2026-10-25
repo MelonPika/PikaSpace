@@ -1,7 +1,7 @@
 import { handleMediaCommand } from "./media.js";
 
 const NATIVE_HOST_NAME = "com.pikanav.media";
-const HOST_MISSING_MESSAGE = "PikaNav Windows Companion is not installed or not registered.";
+const HOST_MISSING_MESSAGE = "PikaDesk · 皮卡桌面 Windows Companion is not installed or not registered.";
 
 const SUPPORTED_COMMANDS = new Set([
   "ping",
@@ -48,7 +48,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "PIKANAV_COMPANION_COMMAND" || message?.type === "mediaCommand") {
     const command = message.command;
     if (!SUPPORTED_COMMANDS.has(command)) {
-      sendResponse({ ok: false, error: "Unsupported PikaNav companion command." });
+      sendResponse({ ok: false, error: "Unsupported PikaDesk · 皮卡桌面 companion command." });
       return false;
     }
 
@@ -237,5 +237,5 @@ function normalizeNativeError(error) {
     return HOST_MISSING_MESSAGE;
   }
 
-  return message || "Unable to connect to PikaNav Windows Companion.";
+  return message || "Unable to connect to PikaDesk · 皮卡桌面 Windows Companion.";
 }

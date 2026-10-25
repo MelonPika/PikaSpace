@@ -8,7 +8,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <Version>0.2.1</Version>
-    <Title>PikaNav Windows Companion</Title>
-    <Description>On-demand local media and system metrics for PikaNav.</Description>
+    <AssemblyTitle>PikaDesk · 皮卡桌面 Windows Companion</AssemblyTitle>
+    <Product>PikaDesk · 皮卡桌面 Windows Companion</Product>
+    <Company>PikaDesk</Company>
+    <Title>PikaDesk · 皮卡桌面 Windows Companion</Title>
+    <Description>On-demand local media and system metrics for PikaDesk · 皮卡桌面.</Description>
   </PropertyGroup>
 </Project>

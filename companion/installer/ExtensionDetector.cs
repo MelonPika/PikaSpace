@@ -95,7 +95,10 @@ internal static class ExtensionDetector
         }
         if (!IsLocalPath(extensionPath)) return false;
         var manifest = ReadJson(Path.Combine(extensionPath, "manifest.json"));
-        if (!String.Equals(Get(manifest, "name") as string, "PikaNav", StringComparison.Ordinal)) return false;
+        // Retain discovery of older unpacked installations during the rebrand.
+        string name = Get(manifest, "name") as string;
+        if (!String.Equals(name, "PikaDesk · 皮卡桌面", StringComparison.Ordinal)
+            && !String.Equals(name, "PikaNav", StringComparison.Ordinal)) return false;
         if (!Object.Equals(Get(manifest, "manifest_version"), 3)) return false;
         if (!String.Equals(Get(Map(Get(manifest, "chrome_url_overrides")), "newtab") as string, "index.html", StringComparison.Ordinal)) return false;
         var permissions = Get(manifest, "permissions") as IEnumerable;

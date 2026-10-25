@@ -1,11 +1,11 @@
-param([switch]$SkipBuild)
+﻿param([switch]$SkipBuild)
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 [xml]$project = Get-Content -LiteralPath (Join-Path $repoRoot 'companion\native-host\PikaNav.MediaHost.csproj')
 $version = [string]$project.Project.PropertyGroup.Version
 $workDir = Join-Path $repoRoot '.verification\companion'
-$installer = Join-Path $workDir "test-installer\PikaNav-Companion-$version-Setup-x64.exe"
+$installer = Join-Path $workDir "test-installer\PikaDesk-Companion-$version-Setup-x64.exe"
 # Include Unicode and an apostrophe to exercise JSON paths and executable quoting.
 $installDir = Join-Path $workDir "installer-smoke's-$([char]0x732b)"
 $hostPath = Join-Path $installDir 'PikaNav.MediaHost.exe'
@@ -60,6 +60,10 @@ try {
   Assert-True ($manifest.allowed_origins[0] -ceq "chrome-extension://$idOne/") 'Wrong first extension origin.'
   Assert-True ($manifest.allowed_origins[1] -ceq "chrome-extension://$idTwo/") 'Wrong second extension origin.'
   Assert-True (Test-Path -LiteralPath $uninstallKey) 'Windows Apps uninstall entry is missing.'
+  Assert-True ((Get-ItemProperty -LiteralPath $uninstallKey).DisplayName -clike 'PikaDesk · 皮卡桌面 Companion Installer Test*') 'Windows Apps displays the wrong brand.'
+  $hostInfo = (Get-Item -LiteralPath $hostPath).VersionInfo
+  Assert-True ($hostInfo.ProductName -ceq 'PikaDesk · 皮卡桌面 Windows Companion') 'The native helper displays the wrong product name.'
+  Assert-True ($hostInfo.FileDescription -ceq 'PikaDesk · 皮卡桌面 Windows Companion') 'The native helper displays the wrong file description.'
 
   $runtime = Get-Content -LiteralPath (Join-Path $installDir 'PikaNav.MediaHost.runtimeconfig.json') -Raw | ConvertFrom-Json
   Assert-True ($null -ne $runtime.runtimeOptions.includedFrameworks) 'The runtime was not bundled.'

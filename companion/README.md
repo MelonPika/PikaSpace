@@ -1,4 +1,6 @@
-# PikaNav Windows Companion
+# PikaDesk · 皮卡桌面 Windows Companion
+
+Part of [PikaDesk · 皮卡桌面](https://github.com/MelonPika/PikaSpace). Installer upgrade identity, native host names, executable paths, and the existing installation directory retain their legacy identifiers for compatibility.
 
 The Windows companion reads and controls the current Windows desktop media session and reports system metrics. `native-host/` contains the helper, `installer/` contains the EXE setup wizard, `scripts/` contains build/install tools, and `diagnostics-extension/` contains the older developer diagnostic popup.
 
@@ -28,7 +30,7 @@ Building from source requires a .NET SDK supporting .NET 8. The legacy PowerShel
 
 ## Install the Windows companion
 
-For users, run `releases/companion/PikaNav-Companion-0.2.1-Setup-x64.exe` from the repository root and choose **Connect automatically**, then refresh PikaNav. Setup detects existing PikaNav dashboards in standard Chrome profiles and includes the stable portable-release ID. No administrator permissions or PowerShell commands are needed. Manual ID entry remains available for the diagnostic extension in this folder and custom profiles. Rerun Setup to update or reconnect; uninstall from Windows Settings > Apps.
+For users, run `releases/companion/PikaDesk-Companion-0.2.1-Setup-x64.exe` from the repository root and choose **Connect automatically**, then refresh PikaDesk · 皮卡桌面. Setup detects existing PikaDesk · 皮卡桌面 dashboards in standard Chrome profiles and includes the stable portable-release ID. No administrator permissions or PowerShell commands are needed. Manual ID entry remains available for the diagnostic extension in this folder and custom profiles. Rerun Setup to update or reconnect; uninstall from Windows Settings > Apps.
 
 Run `npm run package:companion` from the repository root to build the EXE. See [packaging and verification](../docs/COMPANION.md) for compiler bootstrapping, preconfigured IDs, and isolated installer tests.
 
@@ -58,7 +60,7 @@ Admin permissions are not required.
 
 4. Restart Chrome, or reload the extension from `chrome://extensions`.
 5. Start music in Spotify, YouTube Music, Chrome, Edge, or another Windows media app.
-6. Open the PikaNav Media extension popup.
+6. Open the PikaDesk · 皮卡桌面 Media extension popup.
 7. Confirm the status says the companion is connected.
 8. Click Refresh.
 9. Verify Title, Artist, Album, Source/App, and Status update.
@@ -75,7 +77,7 @@ Admin permissions are not required.
 ```
 
 17. Reload the extension and open the popup.
-18. Confirm it shows: `PikaNav Windows Companion is not installed or not registered.`
+18. Confirm it shows: `PikaDesk · 皮卡桌面 Windows Companion is not installed or not registered.`
 
 ## Native commands
 
@@ -193,7 +195,7 @@ GPU stats are best-effort. The current companion returns nullable GPU usage and 
 
 ## Uninstall
 
-For an EXE installation, use **Windows Settings > Apps > PikaNav Windows Companion > Uninstall**. The legacy helper script delegates to the EXE uninstaller when present:
+For an EXE installation, use **Windows Settings > Apps > PikaDesk · 皮卡桌面 Windows Companion > Uninstall**. The legacy helper script delegates to the EXE uninstaller when present:
 
 ```powershell
 .\scripts\uninstall-companion.ps1

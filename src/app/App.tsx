@@ -3389,7 +3389,7 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
     const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
-    link.download = "pikanav-settings.json";
+    link.download = "pikadesk-settings.json";
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -3459,7 +3459,7 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
               </button>
             ))}
           </nav>
-          <div className="settings-version">v1.0.1<br />PikaNav</div>
+          <div className="settings-version">v1.0.1<br />PikaDesk · 皮卡桌面</div>
         </aside>
 
         <div className="settings-content">
@@ -3610,7 +3610,7 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
               {confirmReset ? (
                 <div className="reset-confirm">
                   <AlertCircle size={20} />
-                  <span>This permanently resets PikaNav settings, favorites, and custom wallpaper.</span>
+                  <span>This permanently resets PikaDesk · 皮卡桌面 settings, favorites, and custom wallpaper.</span>
                   <button type="button" onClick={onResetAll}>Reset preferences and favorites</button>
                   <button type="button" onClick={() => setConfirmReset(false)}>Cancel</button>
                 </div>
@@ -3752,7 +3752,7 @@ export default function App() {
   ].filter(Boolean).join(" ");
 
   return (
-    <main className={pageClasses} style={getPageStyle(displaySettings)} aria-label="PikaNav new tab dashboard">
+    <main className={pageClasses} style={getPageStyle(displaySettings)} aria-label="PikaDesk · 皮卡桌面 new tab dashboard">
       <div className="aurora-bg" aria-hidden="true">
         {customWallpaperDataUrl && <div className="custom-wallpaper-layer" style={{ backgroundImage: `url(${JSON.stringify(customWallpaperDataUrl)})` }} />}
       </div>
@@ -3773,7 +3773,7 @@ export default function App() {
         <section className="main-column">
           {displaySettings.visibility.greeting && (
             <section className="greeting" aria-label="Overview">
-              <span className="brand-mark">PikaNav</span>
+              <span className="brand-mark" title="Your Browser, Your Workspace.">PikaDesk · 皮卡桌面</span>
               <h1 className="localized-greeting">{interfaceLocale === "zh-CN" || interfaceLocale === "ja-JP" ? `${greeting}，` : `${greeting}, `}<strong>{greetingName}</strong></h1>
               {!focusMode && <p className="localized-greeting-stats"><span><ListTodo size={13} />{taskSummary}</span></p>}
             </section>

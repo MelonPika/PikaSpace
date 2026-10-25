@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 $installDir = Join-Path $env:LOCALAPPDATA "PikaNav\MediaHost"
 $registryPath = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\com.pikanav.media"
@@ -7,7 +7,7 @@ $uninstaller = Join-Path $installDir 'unins000.exe'
 if (Test-Path -LiteralPath $uninstaller) {
   $removeProcess = Start-Process -FilePath $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -WindowStyle Hidden -Wait -PassThru
   if ($removeProcess.ExitCode -ne 0) { throw "Companion uninstall failed: $($removeProcess.ExitCode)" }
-  Write-Host 'PikaNav Windows Companion uninstalled.'
+  Write-Host 'PikaDesk · 皮卡桌面 Windows Companion uninstalled.'
   return
 }
 
@@ -22,4 +22,4 @@ if (Test-Path $installDir) {
   Remove-Item -LiteralPath $resolvedInstallDir -Recurse -Force
 }
 
-Write-Host "PikaNav Windows Companion uninstalled."
+Write-Host "PikaDesk · 皮卡桌面 Windows Companion uninstalled."

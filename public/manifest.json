@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "PikaNav",
-  "description": "Your personal new-tab dashboard with search, favorites, notes, tasks, weather, and browser media controls.",
+  "name": "PikaDesk · 皮卡桌面",
+  "description": "A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.",
   "version": "1.0.1",
   "minimum_chrome_version": "106",
   "chrome_url_overrides": {
