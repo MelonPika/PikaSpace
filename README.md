@@ -1,32 +1,37 @@
 <div align="center">
-  <img src="public/icons/icon-128.svg" width="88" height="88" alt="PikaDesk logo" />
-  <h1>PikaDesk · 皮卡桌面</h1>
+  <h1>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="docs/assets/wordmark-dark.svg" />
+      <img src="docs/assets/wordmark-light.svg" width="640" alt="PikaDesk · 皮卡桌面" />
+    </picture>
+  </h1>
   <p><strong>Your Browser, Your Workspace.</strong></p>
-  <p>A customizable Chrome new-tab dashboard for your tools, ideas, and everyday tasks.<br />把常用工具、灵感和日常安排，放进你的新标签页。</p>
+  <p>A place for your everyday tools, ideas, and a little room to focus.<br />常用工具随手可及，灵感与日常各得其所。</p>
+  <p>
+    <a href="#en-install"><kbd> Get started → </kbd></a>&nbsp;&nbsp;
+    <a href="#zh-install"><kbd> 开始使用 → </kbd></a>&nbsp;&nbsp;
+    <a href="#preview"><kbd> Explore the workspace ↓ </kbd></a>
+  </p>
   <p>
     <a href="public/manifest.json"><img src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?style=flat-square" alt="Chrome extension · Manifest V3" /></a>
     <a href="docs/RELEASE-NOTES.md"><img src="https://img.shields.io/badge/Extension-1.0.1-8B5CF6?style=flat-square" alt="Extension version 1.0.1" /></a>
     <a href="docs/COMPANION.md"><img src="https://img.shields.io/badge/Windows%20companion-optional-14B8A6?style=flat-square" alt="Windows companion · optional" /></a>
   </p>
-  <p>
-    <a href="#en">English</a> ·
-    <a href="#zh">中文说明</a> ·
-    <a href="#preview">Preview / 预览</a> ·
-    <a href="#en-install">Install</a> / <a href="#zh-install">安装</a> ·
-    <a href="https://github.com/MelonPika/PikaSpace/issues">Issues / 反馈</a>
-  </p>
+  <p><sub><a href="#en">English guide</a> · <a href="#zh">中文指南</a> · <a href="#development">For developers / 开发者</a></sub></p>
 </div>
 
 <a id="preview"></a>
 
-## A workspace at a glance · 桌面预览
+## Your workspace, at a glance · 一页，安放日常
 
-![PikaDesk dark dashboard with search, grouped shortcuts, clock, example notes, and tasks](docs/assets/dashboard.webp)
+<a href="docs/assets/dashboard.webp">
+  <img src="docs/assets/dashboard.webp" width="1600" alt="PikaDesk dark dashboard with search, grouped shortcuts, clock, example notes, and tasks" />
+</a>
 
-<p align="center"><sub>Actual extension captures from an isolated demo profile, with example notes and tasks.<br />实机截图，使用独立演示配置；便笺和任务为示例内容。</sub></p>
+<p align="center"><strong>Search. Capture. Focus.</strong> · 搜索、记录、专注。<br /><sub>Real extension · Demo notes and tasks · Click the preview to enlarge<br />扩展实机截图 · 便笺与任务为示例 · 点击可查看大图</sub></p>
 
 <details>
-<summary>Appearance settings in Chinese · 查看中文外观设置</summary>
+<summary><strong>Make it feel like you · 打开中文外观设置</strong></summary>
 
 ![PikaDesk Chinese appearance settings in light mode, showing theme, accent color, typography, and panel controls](docs/assets/settings-zh.webp)
 
@@ -40,6 +45,8 @@ Switch themes, choose an accent, and adjust the workspace through the built-in s
 <a id="en"></a>
 
 ## English
+
+<sub>01 · THE WORKSPACE</sub>
 
 PikaDesk is a customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace. Keep everyday links, quick notes, and tasks together, then switch to Focus when you want a quieter view.
 
@@ -111,6 +118,9 @@ PikaDesk has no product account, advertising, analytics, or telemetry endpoint. 
 
 Online features contact their respective providers for search suggestions, weather, news, and favicons. Voice search and media artwork can also involve external services. The [privacy documentation](docs/PRIVACY.md) explains each data flow.
 
+<details>
+<summary><strong>Permissions, explained</strong></summary>
+
 | Permission | Why it is used |
 | --- | --- |
 | `storage` | Save settings and content, with optional sync for small preferences. |
@@ -118,6 +128,8 @@ Online features contact their respective providers for search suggestions, weath
 | `nativeMessaging` | Connect to the optional local Windows companion. |
 | `geolocation` | Find a weather location when requested; choosing a city also works. |
 | Specific service hosts | Fetch weather, city results, search suggestions, and news. |
+
+</details>
 
 <a id="en-faq"></a>
 
@@ -167,6 +179,8 @@ For desktop music, install the optional helper and refresh PikaDesk. More checks
 <a id="zh"></a>
 
 ## 中文说明
+
+<sub>02 · 认识皮卡桌面</sub>
 
 皮卡桌面把新标签页变成一个可以随手调整的个人工作空间：常用网站、便笺、待办和音乐控制集中在一起，需要专注时，再一键收起小组件和快捷方式。
 
@@ -238,6 +252,9 @@ PikaDesk-1.0.1/
 
 搜索建议、天气、新闻和网站图标需要访问各自的服务商，语音搜索和媒体封面也可能涉及外部服务。具体的数据流向见[隐私说明](docs/PRIVACY.md)（英文）。
 
+<details>
+<summary><strong>展开查看权限用途</strong></summary>
+
 | 权限 | 用途 |
 | --- | --- |
 | `storage` | 保存设置和内容，并在适用时同步小体积偏好数据。 |
@@ -245,6 +262,8 @@ PikaDesk-1.0.1/
 | `nativeMessaging` | 与本机可选的 Windows 桌面助手通信。 |
 | `geolocation` | 按需获取天气位置，也可以手动选择城市。 |
 | 指定服务域名 | 获取天气、城市搜索结果、搜索建议和新闻。 |
+
+</details>
 
 <a id="zh-faq"></a>
 
@@ -294,6 +313,13 @@ PikaDesk-1.0.1/
 <a id="development"></a>
 
 ## Development · 开发说明
+
+Build, test, and package PikaDesk with the existing toolchain. Regular users can follow the [installation guide](#en-install).
+
+构建、测试与打包命令集中在这里；普通用户可以直接查看[安装教程](#zh-install)。
+
+<details>
+<summary><strong>Open the developer guide · 展开开发指南</strong></summary>
 
 The dashboard build requires **Node.js 22.12+ and npm**. Companion development additionally requires Windows and a compatible .NET SDK; see the [companion build guide](docs/COMPANION.md#build).
 
@@ -379,9 +405,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1 -ToolCache
 | [Historical audit](docs/RELEASE-AUDIT-1.0.md) / [Archives](docs/archive/README.md) | Previous release checks and preserved evidence · 历史验收与保留记录 |
 | [Calendar source](future-features/calendar/README.md) | Deferred implementation and compatibility notes · 暂缓的实现与兼容说明 |
 
+</details>
+
 <a id="credits"></a>
 
-## Credits · 致谢
+## Made with care · 致谢
 
 Built with React, TypeScript, Vite, and Lucide. See [attributions](ATTRIBUTIONS.md), [runtime dependency notices](public/THIRD_PARTY_LICENSES.txt), and the [original dashboard design](https://www.figma.com/design/yCDgbKZjXOC3yYOOVFB6Uu/Customizable-New-Tab-Dashboard).
 
