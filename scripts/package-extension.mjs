@@ -19,7 +19,7 @@ await mkdir(release, { recursive: true });
 await cp(dist, path.join(release, "extension"), { recursive: true });
 await cp(path.join(root, "docs", "INSTALL.md"), path.join(release, "INSTALL.md"));
 await cp(path.join(root, "ATTRIBUTIONS.md"), path.join(release, "ATTRIBUTIONS.md"));
-for (const filename of ["PRIVACY.md", "RELEASE-NOTES.md", "COMPANION.md"]) {
+for (const filename of ["PRIVACY.md", "RELEASE-NOTES.md", "COMPANION.md", "SETTINGS.md"]) {
   await cp(path.join(root, "docs", filename), path.join(release, filename));
 }
 

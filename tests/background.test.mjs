@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
 import { readFile } from 'node:fs/promises';
-const source = (await readFile(new URL('../public/background.js', import.meta.url), 'utf8')).replace(/^import .*;\n/, '');
+import { createCompanionClient } from '../public/companion.js';
+const source = (await readFile(new URL('../public/background.js', import.meta.url), 'utf8')).replace(/^import .*;\r?\n/gm, '');
 function worker(fetch = () => assert.fail('Unexpected network request')) {
   let listener;
   const context = { chrome: { runtime: { id: 'pikanav', getURL: path => `chrome-extension://pikanav/${path}`, onMessage: { addListener: value => listener = value } } },
-    fetch, AbortController, setTimeout, clearTimeout, handleMediaCommand: async () => ({ ok: true }) };
+    fetch, AbortController, setTimeout, clearTimeout, createCompanionClient, handleMediaCommand: async () => ({ ok: true }) };
   vm.createContext(context); vm.runInContext(source, context);
   return { context, listener };
 }

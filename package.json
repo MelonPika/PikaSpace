@@ -19,7 +19,7 @@
     "clean": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1",
     "build": "node scripts/generate-notices.mjs && vite build",
     "dev": "vite",
-    "test": "node --test tests/background.test.mjs tests/media.test.mjs tests/storage.test.mjs && npm run typecheck && npm run build && node scripts/validate-extension.mjs",
+    "test": "node --test tests/background.test.mjs tests/media.test.mjs tests/storage.test.mjs tests/companion.test.mjs tests/customization.test.mjs && npm run typecheck && npm run build && node scripts/validate-extension.mjs",
     "package": "npm run lint && npm test && node scripts/package-extension.mjs",
     "typecheck": "tsc --noEmit",
     "test:browser": "node tests/browser-smoke.mjs",

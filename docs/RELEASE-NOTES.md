@@ -5,6 +5,10 @@ Initial release of PikaSpace and the optional Windows Companion 1.0.0.
 - Customizable Chrome new-tab dashboard with light/dark themes, wallpapers, grouped shortcuts, and focus mode.
 - Clock, notes, tasks, weather, news, browser media, and optional system widgets.
 - Settings export/import, local storage, and quota-aware Chrome sync for small preferences.
+- Explicit layout editing with drag/keyboard reordering, visibility controls, Save/Cancel/Reset, and preserved widget content.
+- Validated custom accent/background/card colors, live previews, saved presets, and automatic text contrast.
+- Responsive Settings controls and an About page with the installed manifest version and official project links.
+- Shared optional-companion status with accurate failure messages, installation links, bounded retry/backoff, and reconnect recovery.
 - Optional Windows desktop media controls and CPU, RAM, and fixed-disk information through the companion.
 - Mascot branding, English and Simplified Chinese READMEs, and separate portable/store-layout packages.
 - Stable extension ID `abipfjhfejgjkhcpilkfdhbgaepljpki` for future updates.

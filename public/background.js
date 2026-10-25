@@ -1,7 +1,9 @@
 import { handleMediaCommand } from "./media.js";
+import { createCompanionClient } from "./companion.js";
 
 const NATIVE_HOST_NAME = "com.pikanav.media";
-const HOST_MISSING_MESSAGE = "PikaSpace Windows Companion is not installed or not registered.";
+const companion = createCompanionClient(requestNativeHost, { storage: chrome.storage?.session });
+const callNativeHost = (payload) => companion.call(payload);
 
 const SUPPORTED_COMMANDS = new Set([
   "ping",
@@ -15,6 +17,14 @@ const SUPPORTED_COMMANDS = new Set([
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Only our extension pages may invoke privileged native, network, or page controls.
   if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL(""))) return false;
+  if (message?.type === "COMPANION_STATUS") {
+    companion.snapshot().then(status => sendResponse({ ok: true, companion: status }));
+    return true;
+  }
+  if (message?.type === "COMPANION_RETRY") {
+    companion.call({ type: "ping" }, true).then(sendResponse);
+    return true;
+  }
   if (message?.type === "GET_SEARCH_SUGGESTIONS") {
     getSearchSuggestions(message)
       .then((suggestions) => sendResponse({ ok: true, suggestions }))
@@ -34,11 +44,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     callNativeHost({ type: "getSystemStats" })
       .then((response) => {
         if (!response?.ok) {
-          sendResponse({ ok: false, error: response?.error || "System stats unavailable" });
+          sendResponse({ ...response, ok: false, error: response?.error || "System stats unavailable" });
           return;
         }
 
-        sendResponse({ ok: true, stats: normalizeStats(response), raw: response });
+        sendResponse({ ok: true, stats: normalizeStats(response), raw: response, companion: response.companion });
       })
       .catch((error) => sendResponse({ ok: false, error: normalizeNativeError(error) }));
 
@@ -54,7 +64,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (["getCurrentMedia", "playPause", "next", "previous"].includes(command)) {
       handleMediaCommand(message, callNativeHost)
-        .then(sendResponse)
+        .then(async response => sendResponse({ ...response, companion: await companion.snapshot() }))
         .catch((error) => sendResponse({ ok: false, error: error?.message || "Media unavailable." }));
       return true;
     }
@@ -62,7 +72,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     callNativeHost({ type: command })
       .then((response) => {
         if (command === "getSystemStats" && response?.ok) {
-          sendResponse({ ok: true, stats: normalizeStats(response), raw: response });
+          sendResponse({ ok: true, stats: normalizeStats(response), raw: response, companion: response.companion });
           return;
         }
         sendResponse(response);
@@ -154,7 +164,7 @@ function normalizeSuggestionError(error) {
   return error?.message || "Suggestion service unavailable.";
 }
 
-async function callNativeHost(payload) {
+async function requestNativeHost(payload) {
   return await new Promise((resolve) => {
     let port;
     let timeout;
@@ -170,11 +180,11 @@ async function callNativeHost(payload) {
     try {
       port = chrome.runtime.connectNative(NATIVE_HOST_NAME);
     } catch (error) {
-      finish({ ok: false, error: normalizeNativeError(error) });
+      finish({ ok: false, transportError: true, error: normalizeNativeError(error) });
       return;
     }
 
-    timeout = setTimeout(() => finish({ ok: false, error: "Windows companion timed out." }), 5000);
+    timeout = setTimeout(() => finish({ ok: false, transportError: true, error: "Windows companion timed out." }), 5000);
 
     port.onMessage.addListener((response) => {
       finish(response && typeof response === "object"
@@ -184,13 +194,13 @@ async function callNativeHost(payload) {
 
     port.onDisconnect.addListener(() => {
       const error = chrome.runtime.lastError;
-      finish({ ok: false, error: normalizeNativeError(error) });
+      finish({ ok: false, transportError: true, error: normalizeNativeError(error) });
     });
 
     try {
       port.postMessage(payload);
     } catch (error) {
-      finish({ ok: false, error: normalizeNativeError(error) });
+      finish({ ok: false, transportError: true, error: normalizeNativeError(error) });
     }
   });
 }
@@ -226,16 +236,5 @@ function pickNumber(value) {
 
 function normalizeNativeError(error) {
   const message = typeof error?.message === "string" ? error.message : String(error || "");
-  const lowerMessage = message.toLowerCase();
-
-  if (
-    lowerMessage.includes("specified native messaging host not found")
-    || lowerMessage.includes("native host has exited")
-    || lowerMessage.includes("not found")
-    || lowerMessage.includes("not registered")
-  ) {
-    return HOST_MISSING_MESSAGE;
-  }
-
   return message || "Unable to connect to PikaSpace Windows Companion.";
 }

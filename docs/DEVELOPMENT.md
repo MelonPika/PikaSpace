@@ -81,6 +81,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1 -ToolCache
 | Guide | Details · 内容 |
 | --- | --- |
 | [Installation & media](INSTALL.md) | Updates, backups, moving settings, and browser media · 更新、备份、迁移与浏览器音乐 |
+| [Settings & customization](SETTINGS.md) | Layout drafts, custom colors, About, storage compatibility, and verification |
 | [Privacy](PRIVACY.md) | Storage, permissions, and external data flows · 存储、权限与外部服务数据流 |
 | [Companion](COMPANION.md) / [Native protocol](../companion/README.md) | Installer, packaging, detection, and native messaging · 安装、打包、检测与原生消息 |
 | [Release notes](RELEASE-NOTES.md) / [Store preparation](STORE-PREPARATION.md) | Version changes and publisher checklist · 版本变化与发布准备 |

@@ -154,6 +154,87 @@ try {
   };
   ws.addEventListener('message', event => { const message = JSON.parse(event.data); void fixture(message); });
   for (const session of [page.session, workerSession]) await send('Fetch.enable', { patterns:[{ urlPattern:'https://*' }] }, session);
+  // Exercise the real worker/UI without modifying the user's native registry or
+  // controlling a desktop player. Only the transport boundary is simulated.
+  await evaluate(workerSession, `(() => {
+    globalThis.savedConnectNative=chrome.runtime.connectNative;
+    globalThis.nativeFixture={mode:'missing',calls:0};
+    chrome.runtime.connectNative=()=>{
+      nativeFixture.calls++;
+      let receive;
+      return {onMessage:{addListener:fn=>receive=fn},onDisconnect:{addListener:()=>{}},disconnect:()=>{},postMessage:payload=>queueMicrotask(()=>{
+        const mode=nativeFixture.mode;
+        receive(mode==='connected' ? payload.type==='ping' ? {ok:true,version:'1.0.0'} : payload.type==='getSystemStats' ? {ok:true,cpu:{usagePercent:42},memory:{usagePercent:30},disk:[]} : {ok:true,hasSession:false}
+          : mode==='incompatible' ? {ok:true,version:'2.0.0'}
+          : {ok:false,error:mode==='missing'?'Specified native messaging host not found.':mode==='disconnected'?'Native host has exited.':mode==='permission'?'Access to the specified native messaging host is forbidden.':'Windows companion timed out.'});
+      })};
+    };
+  })()`);
+  await click(page.session, 'button[aria-label="Settings"]');
+  await clickText(page.session, '.settings-sidebar nav button', 'About PikaSpace');
+  assert.ok(await evaluate(page.session, 'document.querySelector(".about-identity").textContent.includes(chrome.runtime.getManifest().version)'));
+  const aboutLinks=await evaluate(page.session,'[...document.querySelectorAll(".about-links a")].map(el=>({href:el.href,target:el.target,rel:el.rel}))');
+  assert.deepEqual(aboutLinks.map(link=>link.href), ['https://github.com/MelonPika/PikaSpace','https://github.com/MelonPika/PikaSpace/releases','https://github.com/MelonPika/PikaSpace/issues']);
+  assert.ok(aboutLinks.every(link=>link.target==='_blank' && link.rel.includes('noopener')));
+  assert.ok(await evaluate(page.session,'document.querySelector(".settings-content").textContent.includes("No project license has been specified")'));
+  for (const [mode,state] of [['missing','not-detected'],['disconnected','disconnected'],['permission','permission-error'],['incompatible','incompatible'],['timeout','communication-error'],['connected','connected']]) {
+    await evaluate(workerSession, `nativeFixture.mode=${JSON.stringify(mode)}`);
+    if(mode!=='missing') await new Promise(resolve=>setTimeout(resolve,3100));
+    await clickText(page.session,'.companion-actions button','Retry Connection');
+    await poll(async()=> (await evaluate(page.session,'chrome.runtime.sendMessage({type:"COMPANION_STATUS"})')).companion.state===state, `companion ${state}`);
+    if(mode==='missing') {
+      assert.ok(await evaluate(page.session,'document.querySelector(".companion-notice").textContent.includes("Windows Companion Required")'));
+      const before=await evaluate(workerSession,'nativeFixture.calls');
+      for(let i=0;i<8;i++) await evaluate(page.session,'chrome.runtime.sendMessage({type:"PIKANAV_COMPANION_COMMAND",command:"getSystemStats"})');
+      assert.equal(await evaluate(workerSession,'nativeFixture.calls'),before,'negative cache must suppress retries');
+    }
+  }
+  await click(page.session,'.settings-close');
+  await poll(()=>evaluate(page.session,'document.querySelector(".system-card")?.textContent.includes("42%")'),'system stats restored after reconnect');
+  checked('About manifest version, safe official links, license disclosure and all observable companion states');
+  await evaluate(workerSession,'chrome.runtime.connectNative=savedConnectNative');
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.accent-grid button','Custom');
+  await input(page.session,'input[aria-label="accent HEX"]','#123456');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#123456');
+  const savedColor=await evaluate(page.session,'(async()=> (await chrome.storage.local.get("pikanav:data"))["pikanav:data"]?.settings.customColors.accent)()');
+  assert.notEqual(savedColor,'#123456','preview must not persist');
+  await input(page.session,'input[aria-label="accent HEX"]','#xyz');
+  assert.equal(await evaluate(page.session,'document.querySelector("#color-accent").getAttribute("aria-invalid")'),'true');
+  assert.equal(await evaluate(page.session,'[...document.querySelectorAll(".custom-color-editor button")].find(el=>el.textContent==="Save colors").disabled'),true);
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#123456');
+  await clickText(page.session,'.custom-color-editor button','Cancel preview');
+  await input(page.session,'input[aria-label="Pick accent color"]','#00aabb');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#00aabb');
+  await clickText(page.session,'.custom-color-editor button','Save colors');
+  await poll(()=>evaluate(page.session,'(async()=> (await chrome.storage.local.get("pikanav:data"))["pikanav:data"]?.settings.customColors.accent === "#00aabb")()'),'custom color persisted');
+  await clickText(page.session,'.accent-grid button','Emerald');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#10b981');
+  await clickText(page.session,'.accent-grid button','Custom');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#00aabb');
+  await input(page.session,'input[aria-label="card HEX"]','#ffffff');
+  await input(page.session,'input[aria-label="background HEX"]','#111827');
+  await clickText(page.session,'.custom-color-editor button','Save colors');
+  await click(page.session,'.settings-toggle[aria-label="Use custom background and card colors"]');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--panel-bg")'),'#ffffff');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--text-primary")'),'#000000');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--custom-background")'),'#111827');
+  assert.equal(await evaluate(page.session,'getComputedStyle(document.querySelector(".clock-large")).color'),'rgb(0, 0, 0)');
+  assert.equal(await evaluate(page.session,'getComputedStyle(document.querySelector(".search-bar input")).color'),'rgb(0, 0, 0)');
+  await poll(()=>evaluate(page.session,'getComputedStyle(document.querySelector(".icon-button")).backgroundColor === "rgb(255, 255, 255)"'),'custom toolbar color transition');
+  await click(page.session,'.settings-close');
+  const customShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},page.session);
+  await writeFile(path.join(work,'custom-theme.png'),Buffer.from(customShot.data,'base64'));
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-action','Reset theme colors');
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#8b5cf6');
+  await clickText(page.session,'.accent-grid button','Custom');
+  await input(page.session,'input[aria-label="accent HEX"]','#09c');
+  await clickText(page.session,'.custom-color-editor button','Save colors');
+  await click(page.session,'.settings-close');
+  await send('Page.reload',{},page.session);
+  await poll(()=>evaluate(page.session,'document.querySelector("main")?.style.getPropertyValue("--accent") === "#0099cc"'),'custom color reload');
+  checked('custom picker, HEX validation, live preview, save/cancel, presets, reset and reload persistence');
   await click(page.session, 'button[aria-label="Settings"]');
   await clickText(page.session, '.settings-sidebar nav button', 'Widgets');
   assert.equal(await evaluate(page.session, 'document.querySelector(".widget-list").textContent.includes("Calendar")'), false);
@@ -257,15 +338,73 @@ try {
   assert.equal(await evaluate(page.session, 'document.querySelectorAll(".widget-column").length'), 0);
   await clickText(page.session, '.quick-actions button', 'Focus on');
   checked('focus mode opens and restores widgets');
+  await send('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false},page.session);
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','Layout');
+  await clickText(page.session,'.settings-action','Edit dashboard layout');
+  const originalOrder=await evaluate(page.session,'localStorage.getItem("pikanav.widgetOrder")');
   const beforeDrag = await evaluate(page.session,'document.querySelector(".widget-draggable").getAttribute("aria-label")');
-  await evaluate(page.session,'(() => { const cards=document.querySelectorAll(".widget-draggable"); const dataTransfer=new DataTransfer(); cards[0].dispatchEvent(new DragEvent("dragstart",{bubbles:true,dataTransfer})); cards[1].dispatchEvent(new DragEvent("drop",{bubbles:true,cancelable:true,dataTransfer})); cards[0].dispatchEvent(new DragEvent("dragend",{bubbles:true,dataTransfer})); })()');
+  assert.ok(await evaluate(page.session,'document.querySelector(".notes-widget textarea").closest(".widget-content").inert'));
+  assert.ok(await evaluate(page.session,'document.querySelector(".main-column").inert'));
+  const dragPoints=await evaluate(page.session,'[...document.querySelectorAll(".widget-edit-controls strong")].slice(0,2).map(el=>{const r=el.getBoundingClientRect();return {x:r.x+20,y:r.y+r.height/2};})');
+  await send('Input.setInterceptDrags',{enabled:true},page.session);
+  const eventStart=events.length;
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',...dragPoints[0]},page.session);
+  await send('Input.dispatchMouseEvent',{type:'mousePressed',...dragPoints[0],button:'left',buttons:1,clickCount:1},page.session);
+  await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:dragPoints[0].x+16,y:dragPoints[0].y+16,button:'left',buttons:1},page.session);
+  const intercepted=await poll(()=>events.slice(eventStart).find(event=>event.method==='Input.dragIntercepted'),'native HTML drag');
+  for(const type of ['dragEnter','dragOver','drop']) await send('Input.dispatchDragEvent',{type,...dragPoints[1],data:intercepted.params.data},page.session);
+  await send('Input.dispatchMouseEvent',{type:'mouseReleased',...dragPoints[1],button:'left',buttons:0,clickCount:1},page.session);
+  await send('Input.setInterceptDrags',{enabled:false},page.session);
   assert.notEqual(await evaluate(page.session,'document.querySelector(".widget-draggable").getAttribute("aria-label")'),beforeDrag);
-  checked('HTML drag-and-drop handlers reorder widgets');
+  checked('trusted Chrome mouse drag-and-drop reorders widgets');
+  const layoutShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},page.session);
+  await writeFile(path.join(work,'layout-editor.png'),Buffer.from(layoutShot.data,'base64'));
   await evaluate(page.session, 'document.querySelector(".widget-draggable").focus()');
   const firstBefore = await evaluate(page.session, 'document.querySelector(".widget-draggable").getAttribute("aria-label")');
   await key(page.session, 'ArrowDown', { modifiers:1 });
   assert.notEqual(await evaluate(page.session, 'document.querySelector(".widget-draggable").getAttribute("aria-label")'), firstBefore);
   checked('keyboard widget reordering');
+  assert.equal(await evaluate(page.session,'localStorage.getItem("pikanav.widgetOrder")'), originalOrder,'draft reorder must not persist');
+  await clickText(page.session,'.layout-editor button','Cancel layout');
+  assert.equal(await evaluate(page.session,'localStorage.getItem("pikanav.widgetOrder")'), originalOrder);
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','Layout');
+  await clickText(page.session,'.settings-action','Edit dashboard layout');
+  await clickText(page.session,'.layout-editor button','Reset layout');
+  assert.equal(await evaluate(page.session,'document.querySelectorAll(".widget-draggable").length'),3);
+  await clickText(page.session,'.layout-editor button','Cancel layout');
+  assert.ok(await evaluate(page.session,'Boolean(document.querySelector(".notes-widget"))'),'cancel reset retains saved widgets');
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','Layout');
+  await clickText(page.session,'.settings-action','Edit dashboard layout');
+  await clickText(page.session,'.layout-editor button','Reset layout');
+  await clickText(page.session,'.layout-editor button','Save layout');
+  await poll(()=>evaluate(page.session,'(async()=>{const data=(await chrome.storage.local.get("pikanav:data"))["pikanav:data"]; return data.settings.widgets.clock && data.settings.widgets.music && data.settings.widgets.system && !data.settings.widgets.notes;})()'),'default layout saved');
+  assert.equal(await evaluate(page.session,'(async()=> (await chrome.storage.local.get("pikanav.widgetData"))["pikanav.widgetData"].notes)()'),'Release note saved');
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','Widgets');
+  await click(page.session,'.widget-row [aria-label="Quick Notes"]');
+  await click(page.session,'.widget-row [aria-label="Task List"]');
+  await click(page.session,'.settings-close');
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','Layout');
+  await clickText(page.session,'.settings-action','Edit dashboard layout');
+  await click(page.session,'.widget-edit-controls button[aria-label$="down"]');
+  const draftOrder=await evaluate(page.session,'[...document.querySelectorAll(".widget-draggable")].map(el=>el.dataset.widgetId)');
+  await click(page.session,'.widget-edit-controls button[aria-label="Hide Music Player"]');
+  assert.equal(await evaluate(page.session,'Boolean(document.querySelector(".music-card"))'),false);
+  await click(page.session,'.layout-options input[type=checkbox]');
+  await clickText(page.session,'.layout-editor button','Save layout');
+  assert.equal(await evaluate(page.session,'Boolean(document.querySelector(".layout-editor"))'),false);
+  const savedOrder=await evaluate(page.session,'JSON.parse(localStorage.getItem("pikanav.widgetOrder"))');
+  assert.deepEqual(savedOrder.filter(id=>draftOrder.includes(id)),draftOrder);
+  await send('Page.reload',{},page.session);
+  await poll(()=>evaluate(page.session,'Boolean(document.querySelector(".notes-widget"))'),'layout reload');
+  assert.equal(await evaluate(page.session,'Boolean(document.querySelector(".music-card"))'),false,'widget visibility persists');
+  assert.equal(await evaluate(page.session,'document.querySelector(".notes-widget textarea").value'),'Release note saved');
+  assert.deepEqual(await evaluate(page.session,'JSON.parse(localStorage.getItem("pikanav.widgetOrder"))'),savedOrder);
+  checked('layout drafts block widget actions; cancel/reset/save preserve content and restore after reload');
   await click(page.session, 'button[aria-label="Settings"]');
   await evaluate(page.session, 'document.querySelector(".settings-shell button").focus()');
   await key(page.session, 'Tab', { modifiers:8 });
@@ -330,6 +469,9 @@ try {
   await send('Target.closeTarget', {targetId:second.targetId});
   checked('multiple tabs share widget changes');
   await click(page.session, 'button[aria-label="Settings"]');
+  await clickText(page.session,'.accent-grid button','Custom');
+  await input(page.session,'input[aria-label="accent HEX"]','#3399ff');
+  await clickText(page.session,'.custom-color-editor button','Save colors');
   await clickText(page.session, '.settings-sidebar nav button', 'Data & Backup');
   await send('Browser.setDownloadBehavior', { behavior:'allow', downloadPath:downloads });
   await clickText(page.session, '.data-actions button', 'Export settings');
@@ -341,6 +483,7 @@ try {
   assert.match(exported.profile.avatarDataUrl,/^data:image\/png;base64,/);
   assert.match(exported.customWallpaperDataUrl,/^data:image\/png;base64,/);
   assert.ok(exported.widgetOrder.length);
+  assert.equal(exported.settings.customColors.accent,'#3399ff');
   await importBackup(page.session, {...exported,widgetData:{...exported.widgetData,notes:'Round-trip note'}});
   await click(page.session, '.settings-close');
   await poll(() => evaluate(page.session, 'document.querySelector(".notes-widget textarea").value === "Round-trip note"'), 'backup import');
@@ -366,6 +509,17 @@ try {
     assert.ok(bounds.left >= 0 && bounds.right <= width && bounds.top >= 0 && bounds.bottom <= height && !bounds.overflow, JSON.stringify({width,bounds}));
     const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},page.session);
     await writeFile(path.join(work,`settings-${width}.png`),Buffer.from(shot.data,'base64'));
+    for(const tab of ['Wallpaper','Layout','Widgets','Language','Data & Backup','About PikaSpace']) {
+      await clickText(page.session,'.settings-sidebar nav button',tab);
+      assert.ok(await evaluate(page.session,'(() => {const el=document.querySelector(".settings-content");return el.scrollWidth <= el.clientWidth;})()'), `${tab} overflow at ${width}`);
+      if(tab==='Widgets') {
+        assert.ok(await evaluate(page.session,'[...document.querySelectorAll(".widget-row .settings-toggle")].every(el=>{const a=el.getBoundingClientRect(), b=el.firstElementChild.getBoundingClientRect();return b.top>=a.top && b.bottom<=a.bottom && b.left>=a.left && b.right<=a.right;})'),'switch thumbs stay inside tracks');
+      }
+      if(tab==='About PikaSpace') {
+        const aboutShot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false},page.session);
+        await writeFile(path.join(work,`about-${width}.png`),Buffer.from(aboutShot.data,'base64'));
+      }
+    }
     await click(page.session,'.settings-close');
   }
   await send('Emulation.setDeviceMetricsOverride', {width:1440,height:1000,deviceScaleFactor:1,mobile:false},page.session);
@@ -399,6 +553,8 @@ try {
   page = await open(`chrome-extension://${restored.id}/index.html`);
   await poll(()=>evaluate(page.session,'document.querySelector(".notes-widget textarea")?.value === "Round-trip note"'),'complete browser restart persistence');
   assert.equal(await evaluate(page.session,'document.querySelector(".greeting").textContent.includes("Pika Tester")'),true);
+  assert.equal(await evaluate(page.session,'document.querySelector("main").style.getPropertyValue("--accent")'),'#3399ff');
+  assert.deepEqual(await evaluate(page.session,'JSON.parse(localStorage.getItem("pikanav.widgetOrder"))'),exported.widgetOrder);
   checked('full browser restart preserves notes, profile and preferences');
   await writeFile(path.join(work,'dashboard-checks.json'),JSON.stringify({chrome:(await send('Browser.getVersion')).product,checks,externalServices:'deterministic fixtures; live availability not certified'},null,2));
 

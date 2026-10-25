@@ -18,7 +18,7 @@ export async function validateExtension(directory) {
   assert.ok(manifest.host_permissions.every((origin) => !/googleapis\.com|calendar/i.test(origin)));
   assert.equal(manifest.background.type, "module");
   assert.ok(manifest.permissions.includes("scripting"));
-  for (const filename of [manifest.chrome_url_overrides.newtab, manifest.background.service_worker, "media.js"]) {
+  for (const filename of [manifest.chrome_url_overrides.newtab, manifest.background.service_worker, "media.js", "companion.js"]) {
     assert.ok((await stat(path.join(directory, filename))).isFile(), `Missing ${filename}`);
   }
   for (const [size, filename] of Object.entries(manifest.icons)) {

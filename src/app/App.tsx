@@ -44,13 +44,16 @@ import {
 } from "lucide-react";
 import "./App.css";
 import { createDashboardStorage } from "./dashboard-storage.mjs";
+import { DEFAULT_COLORS, normalizeHex, normalizeColors, normalizeWidgetOrder, contrastText, readableAccent, luminance } from "./customization.mjs";
 
 declare const chrome: any;
 
 type SearchMode = "web" | "images" | "videos" | "news" | "ai";
 type SearchProviderId = "google" | "bing" | "duckduckgo" | "perplexity";
 type StatsStatus = "loading" | "ready" | "unavailable";
-type SettingsTab = "appearance" | "wallpaper" | "layout" | "widgets" | "language" | "data";
+type SettingsTab = "appearance" | "wallpaper" | "layout" | "widgets" | "language" | "data" | "about";
+type CustomColors = { accent: string; background: string; card: string };
+type CompanionStatus = { state: "unchecked" | "connected" | "not-detected" | "disconnected" | "incompatible" | "permission-error" | "communication-error"; error: string; version: string; nextRetryAt: number };
 type WidgetId = "clock" | "music" | "system" | "weather" | "notes" | "tasks" | "news";
 
 type WidgetTask = { id: string; title: string; completed: boolean; createdAt: string };
@@ -84,6 +87,8 @@ type LocalProfile = {
 type PikaSettings = {
   themeMode: "dark" | "light" | "auto";
   accentColor: "nebula" | "teal" | "amber" | "rose" | "emerald" | "custom";
+  customColors: CustomColors;
+  customSurfaces: boolean;
   fontSize: number;
   fontFamily: "inter" | "system" | "geist";
   panelOpacity: number;
@@ -235,6 +240,9 @@ type StorageStatus = {
 };
 
 type SettingsPanelProps = {
+  companion: CompanionStatus;
+  onEditLayout: () => void;
+  onThemePreview: (colors: CustomColors | null) => void;
   settings: PikaSettings;
   favorites: Favorite[];
   favoriteGroups: FavoriteGroup[];
@@ -279,6 +287,8 @@ type PikaStyle = CSSProperties & {
 };
 
 const chromeApi = typeof chrome === "undefined" ? undefined : chrome;
+const PROJECT_URL = "https://github.com/MelonPika/PikaSpace";
+const extensionVersion = () => chromeApi?.runtime?.getManifest?.().version || "Development";
 const SYNC_KEY = "pikanav:data";
 function reportStorageStatus(message: string) { window.dispatchEvent(new CustomEvent("pikanav:storage-status", { detail: message })); }
 let browserStorage: Storage | undefined;
@@ -310,6 +320,8 @@ const accentThemes = {
 const defaultSettings: PikaSettings = {
   themeMode: "dark",
   accentColor: "nebula",
+  customColors: { ...DEFAULT_COLORS },
+  customSurfaces: false,
   fontSize: 16,
   fontFamily: "inter",
   panelOpacity: 88,
@@ -601,7 +613,7 @@ const enUi = {
   showBookmarks: "Show bookmark groups",
   showWidgetStrip: "Show widget strip",
   showTopStats: "Show top bar stats",
-  snapGrid: "Snap widgets to grid",
+  snapGrid: "Snap scrolling to widgets",
   showShortcuts: "Show keyboard shortcuts",
   baseFontSize: "Base font size",
   fontFamily: "Font family",
@@ -815,7 +827,7 @@ const uiText = {
     showBookmarks: "显示书签分组",
     showWidgetStrip: "显示小组件栏",
     showTopStats: "显示顶部系统状态",
-    snapGrid: "小组件吸附网格",
+    snapGrid: "滚动时吸附到小组件",
     showShortcuts: "显示快捷键提示",
     baseFontSize: "基础字号",
     fontFamily: "字体",
@@ -947,9 +959,10 @@ const settingsTabs: { id: SettingsTab; label: string; icon: typeof Palette }[] =
   { id: "widgets", label: "Widgets", icon: Puzzle },
   { id: "language", label: "Language", icon: Globe2 },
   { id: "data", label: "Data & Backup", icon: Download },
+  { id: "about", label: "About PikaSpace", icon: Sparkles },
 ];
 
-  const settingsTabLabelKeys: Record<SettingsTab, Exclude<TranslationKey, "searchPlaceholder">> = {
+  const settingsTabLabelKeys: Partial<Record<SettingsTab, Exclude<TranslationKey, "searchPlaceholder">>> = {
   appearance: "tabAppearance",
   wallpaper: "tabWallpaper",
   layout: "tabLayout",
@@ -991,9 +1004,7 @@ const defaultWidgetOrder = widgetConfig.map((widget) => widget.id) as WidgetId[]
 function loadWidgetOrder(): WidgetId[] {
   try {
     const stored = JSON.parse(localStorage.getItem(WIDGET_ORDER_KEY) || "[]");
-    const known = new Set(defaultWidgetOrder);
-    const ordered = Array.isArray(stored) ? [...new Set(stored.filter((id): id is WidgetId => known.has(id)))] : [];
-    return [...ordered, ...defaultWidgetOrder.filter((id) => !ordered.includes(id))];
+    return normalizeWidgetOrder(stored) as WidgetId[];
   } catch {
     return defaultWidgetOrder;
   }
@@ -1002,8 +1013,11 @@ function loadWidgetOrder(): WidgetId[] {
 function saveWidgetOrder(order: WidgetId[]) {
   try {
     localStorage.setItem(WIDGET_ORDER_KEY, JSON.stringify(order));
+    window.dispatchEvent(new Event("pikanav:widget-order"));
+    return true;
   } catch (error) {
     reportStorageStatus("Widget order could not be saved on this device.");
+    return false;
   }
 }
 
@@ -1076,6 +1090,9 @@ function mergeSettings(value: unknown): PikaSettings {
   const record = (item: unknown): Record<string, any> => item && typeof item === "object" && !Array.isArray(item) ? item as Record<string, any> : {};
   const incoming = record(value);
   const next = structuredClone(defaultSettings);
+  next.customColors = normalizeColors(incoming.customColors) as CustomColors;
+  if (incoming.accentColor === "custom" && !incoming.customColors) next.customColors.accent = accentThemes.custom.color;
+  next.customSurfaces = incoming.customSurfaces === true;
   const choices = {
     themeMode: ["dark", "light", "auto"], accentColor: Object.keys(accentThemes),
     fontFamily: ["inter", "system", "geist"], wallpaper: ["aurora", "cosmos", "mountain", "abstract", "solid-dark", "gradient", "custom"],
@@ -1736,6 +1753,8 @@ function useDialogFocus(selector: string, onClose: () => void, enabled = true) {
     const dialog = document.querySelector<HTMLElement>(selector);
     if (!dialog) return;
     const previous = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const controls = () => Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled), input:not([type="hidden"]):not(:disabled), textarea, select, a[href], [tabindex="0"]')).filter((element) => element.getClientRects().length > 0);
     controls()[0]?.focus();
     const handle = (event: KeyboardEvent) => {
@@ -1749,7 +1768,7 @@ function useDialogFocus(selector: string, onClose: () => void, enabled = true) {
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", handle);
-    return () => { document.removeEventListener("keydown", handle); if (previous?.isConnected) previous.focus(); };
+    return () => { document.body.style.overflow = previousOverflow; document.removeEventListener("keydown", handle); if (previous?.isConnected) previous.focus(); };
   }, [selector, enabled]);
 }
 
@@ -1771,11 +1790,12 @@ function sendRuntimeCommand<T = any>(type: "PIKANAV_COMPANION_COMMAND" | "mediaC
       return;
     }
 
-    chromeApi.runtime.sendMessage({ type, command, ...mediaTarget }, (response: T & { ok?: boolean; error?: string }) => {
+    chromeApi.runtime.sendMessage({ type, command, ...mediaTarget }, (response: T & { ok?: boolean; error?: string; companion?: CompanionStatus }) => {
       if (chromeApi.runtime.lastError) {
         resolve({ ok: false, error: chromeApi.runtime.lastError.message } as T & { ok: boolean; error: string });
         return;
       }
+      if (response?.companion) window.dispatchEvent(new CustomEvent("pikanav:companion-status", { detail: response.companion }));
       resolve(response || ({ ok: false, error: "Extension returned an empty response" } as T & { ok: boolean; error: string }));
     });
   });
@@ -1788,15 +1808,64 @@ async function sendCompanionCommand<T = any>(command: "ping" | "getSystemStats" 
   return sendRuntimeCommand<T>("mediaCommand", command);
 }
 
+function useCompanionStatus() {
+  const [status, setStatus] = useState<CompanionStatus>({ state: "unchecked", error: "", version: "", nextRetryAt: 0 });
+  useEffect(() => {
+    let mounted = true;
+    const update = (event: Event) => setStatus((event as CustomEvent<CompanionStatus>).detail);
+    window.addEventListener("pikanav:companion-status", update);
+    if (chromeApi?.runtime?.sendMessage) chromeApi.runtime.sendMessage({ type: "COMPANION_STATUS" }, (response: { companion?: CompanionStatus }) => {
+      if (!chromeApi.runtime.lastError && mounted && response?.companion) setStatus(response.companion);
+    });
+    return () => { mounted = false; window.removeEventListener("pikanav:companion-status", update); };
+  }, []);
+  return status;
+}
+
+const companionLabels: Record<CompanionStatus["state"], string> = {
+  unchecked: "Not checked", connected: "Connected", "not-detected": "Not detected",
+  disconnected: "Disconnected", incompatible: "Incompatible companion", "permission-error": "Permission denied", "communication-error": "Communication error",
+};
+function CompanionNotice({ status, compact = false }: { status: CompanionStatus; compact?: boolean }) {
+  const [retrying, setRetrying] = useState(false);
+  async function retry() {
+    if (retrying || !chromeApi?.runtime?.sendMessage) return;
+    setRetrying(true);
+    try {
+      const response = await chromeApi.runtime.sendMessage({ type: "COMPANION_RETRY" });
+      if (response?.companion) window.dispatchEvent(new CustomEvent("pikanav:companion-status", { detail: response.companion }));
+      window.dispatchEvent(new Event("pikanav:companion-retry"));
+    } catch { reportStorageStatus("Could not reach the extension service. Reload this tab and retry."); }
+    finally { setRetrying(false); }
+  }
+  const missing = status.state === "not-detected" || status.state === "unchecked";
+  return <div className={`companion-notice ${compact ? "compact" : ""}`}>
+    <strong>{status.state === "connected" ? "Windows Companion connected" : missing ? "Windows Companion Required" : companionLabels[status.state]}</strong>
+    <p>{status.state === "connected" ? `Desktop media and native system information are available${status.version ? ` (v${status.version})` : ""}.` : missing
+      ? "Install the free PikaSpace Windows Companion to view your CPU, RAM, and other system information."
+      : status.state === "incompatible" ? "Install a supported 1.x companion from GitHub Releases, then retry."
+      : status.state === "permission-error" ? "Chrome could not access the companion. Check its registration and access permissions, then retry."
+      : "Chrome could not communicate with the companion. Check the installation and retry the connection."}</p>
+    {status.error && !missing && <details><summary>Connection details</summary><p>{status.error}</p></details>}
+    <div className="companion-actions">
+      <a href={`${PROJECT_URL}/releases`} target="_blank" rel="noopener noreferrer">Download Companion</a>
+      <a href={`${PROJECT_URL}/blob/main/docs/COMPANION.md`} target="_blank" rel="noopener noreferrer">Learn More</a>
+      <button type="button" disabled={retrying || !chromeApi?.runtime} onClick={() => void retry()}>{retrying ? "Connecting…" : "Retry Connection"}</button>
+    </div>
+  </div>;
+}
+
 function useSystemStats(pageVisible: boolean) {
   const [stats, setStats] = useState<SystemStats>({ cpu: null, ram: null, disk: null, gpu: null, status: "loading" });
   useEffect(() => {
     if (!pageVisible) return undefined;
     let mounted = true;
     let timerId: number | undefined;
+    let available = false;
     async function requestStats() {
       const response = await sendCompanionCommand<{ stats?: Partial<SystemStats> }>("getSystemStats");
       if (!mounted) return;
+      available = Boolean(response?.ok && response.stats);
       if (!response?.ok || !response.stats) {
         setStats({
           cpu: null,
@@ -1826,13 +1895,19 @@ function useSystemStats(pageVisible: boolean) {
       timerId = window.setTimeout(async () => {
         await requestStats();
         if (mounted && pageVisible) schedule();
-      }, SYSTEM_STATS_POLL_MS);
+      }, available ? SYSTEM_STATS_POLL_MS : 60000);
     };
     void requestStats().then(() => {
       if (mounted && pageVisible) schedule();
     });
+    const retry = () => {
+      window.clearTimeout(timerId);
+      void requestStats().then(() => { if (mounted) schedule(); });
+    };
+    window.addEventListener("pikanav:companion-retry", retry);
     return () => {
       mounted = false;
+      window.removeEventListener("pikanav:companion-retry", retry);
       if (timerId !== undefined) window.clearTimeout(timerId);
     };
   }, [pageVisible]);
@@ -1942,10 +2017,12 @@ function useMediaSession(pageVisible: boolean) {
     const onPermissionChange = () => { void safeRefresh(); };
     chromeApi?.permissions?.onAdded?.addListener(onPermissionChange);
     chromeApi?.permissions?.onRemoved?.addListener(onPermissionChange);
+    window.addEventListener("pikanav:companion-retry", onPermissionChange);
     return () => {
       mounted = false;
       chromeApi?.permissions?.onAdded?.removeListener(onPermissionChange);
       chromeApi?.permissions?.onRemoved?.removeListener(onPermissionChange);
+      window.removeEventListener("pikanav:companion-retry", onPermissionChange);
       if (timerId !== undefined) window.clearTimeout(timerId);
     };
   }, [pageVisible]);
@@ -2202,7 +2279,7 @@ function StatsPill({ stats, locale = "en-US" }: { stats: SystemStats; locale?: I
   if (stats.status !== "ready") {
     return (
       <div className="stats-pill stats-pill-muted" title={stats.error || "System stats loading"}>
-        <span className="stat-chip">{stats.status === "loading" ? t(locale, "systemStatsLoading") : t(locale, "systemStatsOffline")}</span>
+        <span className="stat-chip">{stats.status === "loading" ? t(locale, "systemStatsLoading") : "System stats · Companion unavailable"}</span>
       </div>
     );
   }
@@ -2868,7 +2945,7 @@ function MusicCard({ media, locale, onControl }: { media: MediaSession; locale: 
     <aside className="glass-card music-card" aria-label={t(locale, "music")}>
       <div className="card-title-row">
         <div className="card-kicker">{t(locale, "music")}</div>
-        <span className={`live-badge ${media.status === "ready" ? "native" : ""}`}>{media.status === "ready" ? media.playbackStatus || t(locale, "live") : media.status === "loading" ? t(locale, "loading") : t(locale, "offline")}</span>
+        <span className={`live-badge ${media.status === "ready" ? "native" : ""}`}>{media.status === "ready" ? media.playbackStatus || t(locale, "live") : media.status === "loading" ? t(locale, "loading") : media.status === "empty" ? "No playback" : "Unavailable"}</span>
       </div>
       <div className="music-body">
         <div className="album-art">
@@ -2890,22 +2967,23 @@ function MusicCard({ media, locale, onControl }: { media: MediaSession; locale: 
           <SkipForward size={16} />
         </button>
       </div>
-      <p className="widget-note">{media.status === "ready" ? `${media.backend === "browser" ? t(locale, "chromeTab") : "Windows"} · ${media.sourceAppUserModelId || media.album || t(locale, "windowsMediaSession")}` : media.error || t(locale, "waitingMedia")}</p>
+      {(media.status === "ready" || media.error) && <p className="widget-note">{media.status === "ready" ? `${media.backend === "browser" ? t(locale, "chromeTab") : "Windows"} · ${media.sourceAppUserModelId || media.album || t(locale, "windowsMediaSession")}` : media.error}</p>}
       {media.requiresBrowserAccess && <div className="browser-media-access">
         <p className="widget-note">{t(locale, "browserMediaAccess")}</p>
         <button type="button" onClick={enableBrowserMedia}>{t(locale, "enableBrowserMedia")}</button>
       </div>}
       {permissionError && <p className="widget-note" role="status">{permissionError}</p>}
+      <p className="widget-note">Browser playback works without the companion. Windows desktop media requires the optional <a href={`${PROJECT_URL}/releases`} target="_blank" rel="noopener noreferrer">Windows Companion</a>.</p>
     </aside>
   );
 }
 
-function SystemStatsWidget({ stats, locale }: { stats: SystemStats; locale: InterfaceLocale }) {
+function SystemStatsWidget({ stats, locale, companion }: { stats: SystemStats; locale: InterfaceLocale; companion: CompanionStatus }) {
   return (
     <aside className="glass-card system-card" aria-label={t(locale, "system")}>
       <div className="card-title-row">
         <div className="card-kicker">{t(locale, "system")}</div>
-        <span className={`live-badge ${stats.status === "ready" ? "native" : ""}`}>{stats.status === "ready" ? t(locale, "live") : t(locale, "offline")}</span>
+        <span className={`live-badge ${stats.status === "ready" ? "native" : ""}`}>{stats.status === "ready" ? t(locale, "live") : stats.status === "loading" ? "Connecting" : companionLabels[companion.state]}</span>
       </div>
       {stats.status === "ready" ? (
         <>
@@ -2919,7 +2997,7 @@ function SystemStatsWidget({ stats, locale }: { stats: SystemStats; locale: Inte
           </p>
         </>
       ) : (
-        <div className="stats-fallback"><Sparkles size={18} /><p>{stats.status === "loading" ? t(locale, "connectingCompanion") : t(locale, "nativeStatsUnavailable")}</p></div>
+        stats.status === "loading" ? <p className="widget-note">{t(locale, "connectingCompanion")}</p> : <CompanionNotice status={companion} compact />
       )}
     </aside>
   );
@@ -3117,9 +3195,6 @@ function useDashboardOverview(widgetData: WidgetData, stats: SystemStats, system
       if ((stats.cpu || 0) >= 90) notifications.unshift({ id: "system:cpu", title: "High CPU usage", detail: `CPU is at ${stats.cpu}%`, tone: "system" });
       if ((stats.ram || 0) >= 90) notifications.unshift({ id: "system:ram", title: "High memory usage", detail: `Memory is at ${stats.ram}%`, tone: "system" });
     }
-    if (systemEnabled && stats.status === "unavailable") {
-      notifications.unshift({ id: "system:offline", title: "System monitor is offline", detail: stats.error || "Windows companion is unavailable.", tone: "system" });
-    }
     return { openTaskCount: openTasks.length, notifications };
   }, [widgetData.tasks, stats.cpu, stats.ram, stats.status, stats.error, systemEnabled]);
 }
@@ -3220,14 +3295,8 @@ function ComingSoonWidget({ label, description, locale }: { label: string; descr
   );
 }
 
-function RightWidgets({ now, stats, media, weather, settings, widgetData, locale, onMediaControl, onWeatherLocationChange, onWidgetDataChange }: { now: Date; stats: SystemStats; media: MediaSession; weather: WeatherSnapshot; settings: PikaSettings; widgetData: WidgetData; locale: InterfaceLocale; onMediaControl: (command: "previous" | "playPause" | "next") => void; onWeatherLocationChange: (location: WeatherLocation | null) => void; onWidgetDataChange: (data: WidgetData) => void }) {
-  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(() => loadWidgetOrder());
+function RightWidgets({ now, stats, media, weather, settings, widgetData, locale, companion, widgetOrder, editing, onOrderChange, onHideWidget, onMediaControl, onWeatherLocationChange, onWidgetDataChange }: { now: Date; stats: SystemStats; media: MediaSession; weather: WeatherSnapshot; settings: PikaSettings; widgetData: WidgetData; locale: InterfaceLocale; companion: CompanionStatus; widgetOrder: WidgetId[]; editing: boolean; onOrderChange: (order: WidgetId[]) => void; onHideWidget: (id: WidgetId) => void; onMediaControl: (command: "previous" | "playPause" | "next") => void; onWeatherLocationChange: (location: WeatherLocation | null) => void; onWidgetDataChange: (data: WidgetData) => void }) {
   const [draggingWidget, setDraggingWidget] = useState<WidgetId | null>(null);
-  useEffect(() => {
-    const reload = () => setWidgetOrder(loadWidgetOrder());
-    window.addEventListener("pikanav:widget-order", reload);
-    return () => window.removeEventListener("pikanav:widget-order", reload);
-  }, []);
   const orderedWidgets = widgetOrder
     .map((id) => widgetConfig.find((widget) => widget.id === id))
     .filter((widget): widget is (typeof widgetConfig)[number] => Boolean(widget))
@@ -3235,14 +3304,13 @@ function RightWidgets({ now, stats, media, weather, settings, widgetData, locale
 
   function reorder(sourceId: WidgetId, targetId: WidgetId) {
     const next = moveWidget(widgetOrder, sourceId, targetId);
-    setWidgetOrder(next);
-    saveWidgetOrder(next);
+    onOrderChange(next);
   }
 
   function renderWidget(widget: (typeof widgetConfig)[number]) {
     if (widget.id === "clock") return <TodayCard now={now} settings={settings} locale={locale} />;
     if (widget.id === "music") return <MusicCard media={media} locale={locale} onControl={onMediaControl} />;
-    if (widget.id === "system") return <SystemStatsWidget stats={stats} locale={locale} />;
+    if (widget.id === "system") return <SystemStatsWidget stats={stats} locale={locale} companion={companion} />;
     if (widget.id === "weather") return <WeatherWidget locale={locale} weather={weather} onLocationChange={onWeatherLocationChange} />;
     if (widget.id === "notes") return <QuickNotesWidget data={widgetData} onChange={onWidgetDataChange} locale={locale} />;
     if (widget.id === "tasks") return <TaskListWidget data={widgetData} onChange={onWidgetDataChange} locale={locale} />;
@@ -3256,26 +3324,30 @@ function RightWidgets({ now, stats, media, weather, settings, widgetData, locale
         <div
           key={widget.id}
           className={`widget-draggable ${draggingWidget === widget.id ? "dragging" : ""}`}
-          draggable
-          tabIndex={0}
-          aria-label={`${widgetLabel(widget, locale)}. Use Alt and arrow keys to reorder.`}
+          draggable={editing}
+          tabIndex={editing ? 0 : undefined}
+          data-widget-id={widget.id}
+          aria-label={editing ? `${widgetLabel(widget, locale)}. Use Alt and arrow keys to reorder.` : widgetLabel(widget, locale)}
           onKeyDown={(event) => {
-            if (!event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+            if (!editing || !event.altKey || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
             event.preventDefault();
             const index = orderedWidgets.findIndex((item) => item.id === widget.id);
             const target = orderedWidgets[index + (event.key === "ArrowUp" ? -1 : 1)];
             if (target) reorder(widget.id, target.id);
           }}
           onDragStart={(event) => {
+            if (!editing) { event.preventDefault(); return; }
             setDraggingWidget(widget.id);
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", widget.id);
           }}
           onDragOver={(event) => {
+            if (!editing) return;
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
           }}
           onDrop={(event) => {
+            if (!editing) return;
             event.preventDefault();
             const sourceId = event.dataTransfer.getData("text/plain") as WidgetId;
             reorder(sourceId, widget.id);
@@ -3283,7 +3355,8 @@ function RightWidgets({ now, stats, media, weather, settings, widgetData, locale
           }}
           onDragEnd={() => setDraggingWidget(null)}
         >
-          {renderWidget(widget)}
+          {editing && <div className="widget-edit-controls"><strong>{widgetLabel(widget, locale)}</strong><button type="button" aria-label={`Move ${widget.label} up`} disabled={orderedWidgets[0]?.id === widget.id} onClick={() => reorder(widget.id, orderedWidgets[orderedWidgets.findIndex(w => w.id === widget.id) - 1].id)}>↑</button><button type="button" aria-label={`Move ${widget.label} down`} disabled={orderedWidgets.at(-1)?.id === widget.id} onClick={() => reorder(widget.id, orderedWidgets[orderedWidgets.findIndex(w => w.id === widget.id) + 1].id)}>↓</button><button type="button" aria-label={`Hide ${widget.label}`} onClick={() => onHideWidget(widget.id)}><X size={14} /></button></div>}
+          <div className="widget-content" ref={element => { if (element) element.inert = editing; }}>{renderWidget(widget)}</div>
         </div>
       ))}
     </section>
@@ -3298,7 +3371,7 @@ function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: (nex
   );
 }
 
-function SliderRow({ label, value, min, max, unit = "%", onChange }: { label: string; value: number; min: number; max: number; unit?: string; onChange: (value: number) => void }) {
+function SliderRow({ label, value, min, max, unit = "%", disabled = false, onChange }: { label: string; value: number; min: number; max: number; unit?: string; disabled?: boolean; onChange: (value: number) => void }) {
   function updateValue(event: ChangeEvent<HTMLInputElement> | FormEvent<HTMLInputElement>) {
     onChange(Number(event.currentTarget.value));
   }
@@ -3308,6 +3381,7 @@ function SliderRow({ label, value, min, max, unit = "%", onChange }: { label: st
       <span>{label}</span>
       <input
         type="range"
+        disabled={disabled}
         aria-label={label}
         min={min}
         max={max}
@@ -3321,7 +3395,41 @@ function SliderRow({ label, value, min, max, unit = "%", onChange }: { label: st
   );
 }
 
-function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, widgetData, customWallpaperDataUrl, onClose, onSettingsChange, onFavoritesChange, onFavoriteGroupsChange, onCustomWallpaperChange, onImportData, onResetAll }: SettingsPanelProps) {
+function CustomColorEditor({ settings, onSave, onPreview }: { settings: PikaSettings; onSave: (colors: CustomColors) => void; onPreview: (colors: CustomColors | null) => void }) {
+  const [values, setValues] = useState<CustomColors>(settings.customColors);
+  const [message, setMessage] = useState("");
+  const lastValid = useRef(settings.customColors);
+  const keys = ["accent", "background", "card"] as const;
+  const valid = keys.every(key => normalizeHex(values[key]));
+  useEffect(() => () => onPreview(null), [onPreview]);
+  useEffect(() => { setValues(settings.customColors); lastValid.current = settings.customColors; }, [settings.customColors]);
+  function change(key: keyof CustomColors, value: string) {
+    const next = { ...values, [key]: value };
+    setValues(next);
+    setMessage("");
+    const color = normalizeHex(value);
+    if (color) {
+      lastValid.current = { ...lastValid.current, [key]: color };
+      onPreview(lastValid.current);
+    }
+  }
+  return <div className="custom-color-editor">
+    <p>Preview your colors, then save. Background and card colors apply when custom surfaces are enabled; text contrast adjusts automatically.</p>
+    {keys.map(key => <div className="color-field" key={key}>
+      <label htmlFor={`color-${key}`}>{key === "accent" ? "Primary accent" : key === "background" ? "Dashboard background" : "Card background"}</label>
+      <input type="color" aria-label={`Pick ${key} color`} value={lastValid.current[key]} onChange={event => change(key, event.target.value)} />
+      <input id={`color-${key}`} aria-label={`${key} HEX`} aria-invalid={!normalizeHex(values[key])} aria-describedby={!normalizeHex(values[key]) ? `color-error-${key}` : undefined} spellCheck={false} maxLength={7} value={values[key]} onChange={event => change(key, event.target.value)} />
+      {!normalizeHex(values[key]) && <small id={`color-error-${key}`} role="alert">Enter a 3- or 6-digit HEX color.</small>}
+    </div>)}
+    <div className="settings-actions">
+      <button type="button" disabled={!valid} onClick={() => { const colors = normalizeColors(values) as CustomColors; onSave(colors); onPreview(null); setMessage("Custom colors saved."); }}>Save colors</button>
+      <button type="button" onClick={() => { setValues(settings.customColors); lastValid.current = settings.customColors; onPreview(null); setMessage("Preview discarded."); }}>Cancel preview</button>
+    </div>
+    {message && <p role="status">{message}</p>}
+  </div>;
+}
+
+function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, widgetData, customWallpaperDataUrl, companion, onEditLayout, onThemePreview, onClose, onSettingsChange, onFavoritesChange, onFavoriteGroupsChange, onCustomWallpaperChange, onImportData, onResetAll }: SettingsPanelProps) {
   useDialogFocus(".settings-shell", onClose);
   const [tab, setTab] = useState<SettingsTab>("appearance");
   const [confirmReset, setConfirmReset] = useState(false);
@@ -3452,14 +3560,14 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
           </div>
           <nav>
             {settingsTabs.map(({ id, label, icon: Icon }) => (
-              <button key={id} type="button" className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+              <button key={id} type="button" aria-current={tab === id ? "page" : undefined} className={tab === id ? "active" : ""} onClick={event => { setTab(id); event.currentTarget.scrollIntoView({ block: "nearest", inline: "nearest" }); }}>
                 <Icon size={19} />
-                <span>{t(locale, settingsTabLabelKeys[id]) || label}</span>
+                <span>{settingsTabLabelKeys[id] ? t(locale, settingsTabLabelKeys[id]!) : label}</span>
                 {tab === id && <ChevronRight size={17} />}
               </button>
             ))}
           </nav>
-          <div className="settings-version">v1.0.0<br />PikaSpace</div>
+          <div className="settings-version">{extensionVersion()}<br />PikaSpace</div>
         </aside>
 
         <div className="settings-content">
@@ -3472,7 +3580,7 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
                   { id: "light", label: "Light", icon: Sun },
                   { id: "auto", label: "Auto", icon: Monitor },
                 ].map(({ id, label, icon: Icon }) => (
-                  <button key={id} type="button" className={settings.themeMode === id ? "active" : ""} onClick={() => update({ themeMode: id as PikaSettings["themeMode"] })}>
+                  <button key={id} type="button" aria-pressed={settings.themeMode === id} className={settings.themeMode === id ? "active" : ""} onClick={() => update({ themeMode: id as PikaSettings["themeMode"] })}>
                     <Icon size={24} />
                     <span>{label}</span>
                   </button>
@@ -3482,8 +3590,8 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
               <SectionLabel>{t(locale, "accentColor")}</SectionLabel>
               <div className="accent-grid">
                 {(Object.keys(accentThemes) as PikaSettings["accentColor"][]).map((id) => (
-                  <button key={id} type="button" className={settings.accentColor === id ? "active" : ""} onClick={() => update({ accentColor: id })}>
-                    <span className={`accent-swatch accent-${id}`} style={{ "--swatch": accentThemes[id].color } as CSSProperties}>
+                  <button key={id} type="button" aria-pressed={settings.accentColor === id} className={settings.accentColor === id ? "active" : ""} onClick={() => update({ accentColor: id })}>
+                    <span className={`accent-swatch accent-${id}`} style={{ "--swatch": id === "custom" ? settings.customColors.accent : accentThemes[id].color, color: contrastText(id === "custom" ? settings.customColors.accent : accentThemes[id].color) } as CSSProperties}>
                       {settings.accentColor === id && <Check size={24} />}
                     </span>
                     <small>{accentThemes[id].label}</small>
@@ -3491,18 +3599,23 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
                 ))}
               </div>
 
+              {settings.accentColor === "custom" && <CustomColorEditor settings={settings} onSave={customColors => update({ customColors })} onPreview={onThemePreview} />}
+              <ToggleRow label="Use custom background and card colors" enabled={settings.customSurfaces} onChange={customSurfaces => update({ customSurfaces })} />
+              <button type="button" className="settings-action" onClick={() => { onThemePreview(null); update({ accentColor: defaultSettings.accentColor, customColors: { ...DEFAULT_COLORS }, customSurfaces: false }); }}>Reset theme colors</button>
               <SectionLabel>{t(locale, "typography")}</SectionLabel>
               <SliderRow label={t(locale, "baseFontSize")} value={settings.fontSize} min={12} max={20} unit="px" onChange={(fontSize) => update({ fontSize })} />
               <SelectRow label={t(locale, "fontFamily")} value={settings.fontFamily} onChange={(fontFamily) => update({ fontFamily: fontFamily as PikaSettings["fontFamily"] })} options={["inter", "system", "geist"]} labels={{ inter: "Inter (Default)", system: "System UI", geist: "Geist" }} />
 
               <SectionLabel>{t(locale, "widgetStyle")}</SectionLabel>
-              <SliderRow label={t(locale, "panelOpacity")} value={settings.panelOpacity} min={40} max={100} onChange={(panelOpacity) => update({ panelOpacity })} />
-              <SliderRow label={t(locale, "settingsSize")} value={settings.settingsScale} min={85} max={110} onChange={(settingsScale) => update({ settingsScale })} />
+              <SliderRow label={t(locale, "panelOpacity")} value={settings.panelOpacity} min={40} max={100} disabled={settings.customSurfaces} onChange={(panelOpacity) => update({ panelOpacity })} />
+              {settings.customSurfaces && <p className="settings-help">Custom card colors use solid surfaces for readable contrast. Disable custom surfaces to adjust glass opacity.</p>}
+              <SliderRow label={t(locale, "settingsSize")} value={settings.settingsScale} min={80} max={110} onChange={(settingsScale) => update({ settingsScale })} />
             </SettingsSection>
           )}
 
           {tab === "wallpaper" && (
             <SettingsSection title={t(locale, "wallpaperTitle")} subtitle={t(locale, "wallpaperSubtitle")}>
+              {settings.customSurfaces && <><p className="settings-help">Your custom background replaces preset wallpaper colors. Uploaded images still work. Disable custom surfaces to restore preset backgrounds and glass cards.</p><button className="settings-action" type="button" onClick={() => update({ customSurfaces: false })}>Use wallpaper backgrounds</button></>}
               <div className="wallpaper-grid">
                 {wallpaperCards.map((item) => (
                   <button key={item.id} type="button" className={`wallpaper-card wallpaper-preview-${item.id} ${settings.wallpaper === item.id ? "active" : ""}`} onClick={() => update({ wallpaper: item.id })}>
@@ -3516,13 +3629,15 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
                 {customWallpaperDataUrl ? "Replace custom wallpaper" : "Upload custom wallpaper"}
               </button>
               <SectionLabel>Adjustments</SectionLabel>
-              <SliderRow label="Blur" value={settings.wallpaperBlur} min={0} max={20} unit="px" onChange={(wallpaperBlur) => update({ wallpaperBlur })} />
-              <SliderRow label="Dim overlay" value={settings.wallpaperDim} min={0} max={90} onChange={(wallpaperDim) => update({ wallpaperDim })} />
+              <SliderRow label="Blur" value={settings.wallpaperBlur} min={0} max={20} disabled={settings.customSurfaces && settings.wallpaper !== "custom"} unit="px" onChange={(wallpaperBlur) => update({ wallpaperBlur })} />
+              <SliderRow label="Dim overlay" value={settings.wallpaperDim} min={0} max={90} disabled={settings.customSurfaces && settings.wallpaper !== "custom"} onChange={(wallpaperDim) => update({ wallpaperDim })} />
             </SettingsSection>
           )}
 
           {tab === "layout" && (
             <SettingsSection title={t(locale, "layoutTitle")} subtitle={t(locale, "layoutSubtitle")}>
+              <button type="button" className="settings-action" onClick={onEditLayout}><Grid2X2 size={18} />Edit dashboard layout</button>
+              <p className="settings-help">Drag widgets or use their move buttons. Preview visibility and arrangement, then save or cancel. Widgets size automatically to fit the available space.</p>
               <SectionLabel>{t(locale, "interfaceZoom")}</SectionLabel>
               <SliderRow label={t(locale, "interfaceZoom")} value={settings.interfaceScale} min={80} max={130} onChange={(interfaceScale) => update({ interfaceScale })} />
               <SectionLabel>{t(locale, "density")}</SectionLabel>
@@ -3619,6 +3734,19 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
               )}
             </SettingsSection>
           )}
+          {tab === "about" && <SettingsSection title="About PikaSpace" subtitle="Your Browser, Your Workspace.">
+            <div className="about-identity"><img src="icons/icon-128.png" width="80" height="80" alt="PikaSpace mascot" /><div><h4>PikaSpace</h4><span>Version {extensionVersion()}</span></div></div>
+            <p>A customizable Chrome new-tab dashboard for your tools, ideas, and everyday tasks.</p>
+            <p>Created by <strong>MelonPika</strong>.</p>
+            <div className="about-links"><a href={PROJECT_URL} target="_blank" rel="noopener noreferrer">GitHub Repository</a><a href={`${PROJECT_URL}/releases`} target="_blank" rel="noopener noreferrer">GitHub Releases</a><a href={`${PROJECT_URL}/issues`} target="_blank" rel="noopener noreferrer">Report a Bug</a></div>
+            <SectionLabel>Optional Windows Companion</SectionLabel>
+            <p>System monitoring and Windows desktop media use the companion. Browser playback, shortcuts, and other dashboard tools work independently. Chrome launches the native helper on demand.</p>
+            <p role="status">Connection: <strong>{companionLabels[companion.state]}</strong></p>
+            <CompanionNotice status={companion} />
+            <SectionLabel>License &amp; acknowledgments</SectionLabel>
+            <p>No project license has been specified in this repository. Third-party components retain their respective licenses.</p>
+            <a href="THIRD_PARTY_LICENSES.txt" target="_blank" rel="noopener noreferrer">Third-party license notices</a>
+          </SettingsSection>}
         </div>
       </section>
     </div>
@@ -3641,7 +3769,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
 function Segmented({ value, values, labels, onChange }: { value: string; values: string[]; labels?: Record<string, string>; onChange: (value: string) => void }) {
   return (
     <div className="settings-segment-row">
-      {values.map((item) => <button key={item} type="button" className={value === item ? "active" : ""} onClick={() => onChange(item)}>{labels?.[item] || item}</button>)}
+      {values.map((item) => <button key={item} type="button" aria-pressed={value === item} className={value === item ? "active" : ""} onClick={() => onChange(item)}>{labels?.[item] || item}</button>)}
     </div>
   );
 }
@@ -3662,9 +3790,11 @@ function ToggleRow({ label, enabled, onChange }: { label: string; enabled: boole
 }
 
 function getPageStyle(settings: PikaSettings): PikaStyle {
-  const accent = accentThemes[settings.accentColor];
+  const accentColor = settings.accentColor === "custom" ? settings.customColors.accent : accentThemes[settings.accentColor].color;
   const systemLight = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches;
-  const useLightGlass = settings.themeMode === "light" || (settings.themeMode === "auto" && systemLight);
+  const useLightGlass = settings.customSurfaces ? luminance(settings.customColors.card) > .179 : settings.themeMode === "light" || (settings.themeMode === "auto" && systemLight);
+  const accentText = readableAccent(accentColor, useLightGlass, settings.customSurfaces ? settings.customColors.card : undefined);
+  const accent = { color: accentColor, soft: readableAccent(accentColor, false), lightText: accentText };
   const fontFamilies: Record<PikaSettings["fontFamily"], string> = {
     inter: "Inter, ui-sans-serif, system-ui, sans-serif",
     system: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
@@ -3700,11 +3830,33 @@ function getPageStyle(settings: PikaSettings): PikaStyle {
     "--accent": accent.color,
     "--accent-soft": useLightGlass ? `color-mix(in srgb, ${accent.color} 14%, rgba(248, 250, 252, 0.92))` : accent.soft,
     "--accent-border": useLightGlass ? `color-mix(in srgb, ${accent.color} 36%, transparent)` : `color-mix(in srgb, ${accent.color} 38%, transparent)`,
-    "--accent-text": useLightGlass ? accent.lightText : accent.soft,
+    "--accent-text": accentText,
     "--wallpaper-blur": `${settings.wallpaperBlur}px`,
     "--wallpaper-dim": settings.wallpaperDim / 100,
     "--interface-scale": settings.interfaceScale / 100,
     "--settings-scale": settings.settingsScale / 100,
+    "--accent-contrast": contrastText(accent.color),
+    "--border-bright": `color-mix(in srgb, ${accent.color} 38%, transparent)`,
+    ...(settings.customSurfaces ? {
+      "--custom-background": settings.customColors.background,
+      "--workspace-text": contrastText(settings.customColors.background),
+      "--surface": settings.customColors.card,
+      "--surface-strong": settings.customColors.card,
+      "--topbar-glass": settings.customColors.card,
+      "--border": useLightGlass ? "rgba(0, 0, 0, 0.18)" : "rgba(255, 255, 255, 0.18)",
+      "--surface-soft": `color-mix(in srgb, ${settings.customColors.card} 90%, ${useLightGlass ? "black" : "white"})`,
+      "--glass-surface": settings.customColors.card,
+      "--glass-surface-strong": settings.customColors.card,
+      "--glass-surface-soft": settings.customColors.card,
+      "--panel-bg": settings.customColors.card,
+      "--panel-bg-strong": settings.customColors.card,
+      "--text": contrastText(settings.customColors.card),
+      "--text-primary": contrastText(settings.customColors.card),
+      "--text-secondary": contrastText(settings.customColors.card),
+      "--text-soft": contrastText(settings.customColors.card),
+      "--text-muted": contrastText(settings.customColors.card),
+      "--text-disabled": contrastText(settings.customColors.card),
+    } : {}),
     fontSize: `${settings.fontSize * (settings.interfaceScale / 100)}px`,
     fontFamily: fontFamilies[settings.fontFamily],
   } as PikaStyle;
@@ -3717,6 +3869,25 @@ export default function App() {
   const { profile, saveProfile } = useLocalProfile();
   const { loaded, settings, setSettings, favorites, setFavorites, favoriteGroups, setFavoriteGroups, weatherLocation, setWeatherLocation, customWallpaperDataUrl, setCustomWallpaper, importData, resetAll } = useStoredDashboardData();
   const { widgetData, setWidgetData } = useWidgetData();
+  const companion = useCompanionStatus();
+  const [widgetOrder, setWidgetOrder] = useState<WidgetId[]>(loadWidgetOrder);
+  type LayoutDraft = Pick<PikaSettings, "widgets" | "visibility" | "density" | "searchPosition" | "interfaceScale"> & { order: WidgetId[] };
+  const [layoutDraft, setLayoutDraft] = useState<LayoutDraft | null>(null);
+  const [themePreview, setThemePreview] = useState<CustomColors | null>(null);
+  const wasEditingLayout = useRef(false);
+  useEffect(() => {
+    const topbar = document.querySelector<HTMLElement>(".app-topbar");
+    if (topbar) topbar.inert = Boolean(layoutDraft);
+    if (layoutDraft) document.querySelector<HTMLButtonElement>(".layout-editor button")?.focus();
+    else if (wasEditingLayout.current) document.querySelector<HTMLButtonElement>('button[aria-label="Settings"]')?.focus();
+    wasEditingLayout.current = Boolean(layoutDraft);
+  }, [Boolean(layoutDraft)]);
+  useEffect(() => {
+    const reload = () => setWidgetOrder(loadWidgetOrder());
+    window.addEventListener("pikanav:widget-order", reload);
+    window.addEventListener("storage", reload);
+    return () => { window.removeEventListener("pikanav:widget-order", reload); window.removeEventListener("storage", reload); };
+  }, []);
   const stats = useSystemStats(loaded && pageVisible && (settings.visibility.topBarStats || (settings.visibility.widgetStrip && settings.widgets.system)));
   const { media, runControl } = useMediaSession(loaded && pageVisible && settings.visibility.widgetStrip && settings.widgets.music);
   const overview = useDashboardOverview(widgetData, stats, settings.widgets.system);
@@ -3731,7 +3902,20 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const greetingName = updateGreetingName(profile.displayName);
-  const displaySettings = settings;
+  const displaySettings = { ...settings, ...(layoutDraft || {}), ...(themePreview ? { customColors: themePreview, accentColor: "custom" as const } : {}) };
+  function startLayoutEditing() {
+    setLayoutDraft({ widgets: { ...settings.widgets }, visibility: { ...settings.visibility, widgetStrip: true }, density: settings.density, searchPosition: settings.searchPosition, interfaceScale: settings.interfaceScale, order: [...widgetOrder] });
+    setFocusMode(false);
+    setSettingsOpen(false);
+  }
+  function saveLayout() {
+    if (!layoutDraft || !saveWidgetOrder(layoutDraft.order)) return;
+    const { order, ...patch } = layoutDraft;
+    setSettings({ ...settings, ...patch });
+    setWidgetOrder(order);
+    setLayoutDraft(null);
+    reportStorageStatus("Layout saved.");
+  }
   const interfaceLocale: InterfaceLocale = displaySettings.language.locale;
   const taskSummary = interfaceLocale === "zh-CN" ? `${overview.openTaskCount} \u9879\u5f85\u529e` : `${overview.openTaskCount} tasks open`;
   const handleWeatherLocationResolved = useCallback((location: WeatherLocation) => setWeatherLocation(location), [setWeatherLocation]);
@@ -3746,6 +3930,8 @@ export default function App() {
     `wallpaper-${displaySettings.wallpaper}`,
     `font-${displaySettings.fontFamily}`,
     `theme-${displaySettings.themeMode}`,
+    displaySettings.customSurfaces ? "has-custom-surfaces" : "",
+    layoutDraft ? "layout-editing" : "",
     !pageVisible ? "is-hidden" : "",
     !pageVisible || prefersReducedMotion ? "performance-mode" : "",
     focusMode ? "focus-mode" : "",
@@ -3757,6 +3943,12 @@ export default function App() {
         {customWallpaperDataUrl && <div className="custom-wallpaper-layer" style={{ backgroundImage: `url(${JSON.stringify(customWallpaperDataUrl)})` }} />}
       </div>
       {storageMessage && <div className="storage-status" role="status"><span>{storageMessage}</span><button type="button" aria-label="Dismiss storage message" onClick={() => setStorageMessage("")}><X size={16} /></button></div>}
+      {layoutDraft && <section className="layout-editor" aria-label="Layout editor">
+        <div className="layout-editor-heading"><div><strong>Editing dashboard layout</strong><p>Drag widgets, use ↑ / ↓, or Alt + arrow keys. Changes stay in preview until saved. Widget sizes adapt automatically.</p></div><div className="settings-actions"><button type="button" onClick={saveLayout}>Save layout</button><button type="button" onClick={() => setLayoutDraft(null)}>Cancel layout</button><button type="button" onClick={() => setLayoutDraft({ widgets: { ...defaultSettings.widgets }, visibility: { ...defaultSettings.visibility }, density: defaultSettings.density, searchPosition: defaultSettings.searchPosition, interfaceScale: defaultSettings.interfaceScale, order: [...defaultWidgetOrder] })}>Reset layout</button></div></div>
+        <div className="layout-options"><label>Density<select value={layoutDraft.density} onChange={event => setLayoutDraft({ ...layoutDraft, density: event.target.value as PikaSettings["density"] })}>{["compact", "comfortable", "spacious"].map(value => <option key={value}>{value}</option>)}</select></label><label>Search position<select value={layoutDraft.searchPosition} onChange={event => setLayoutDraft({ ...layoutDraft, searchPosition: event.target.value as PikaSettings["searchPosition"] })}>{["top", "center", "bottom"].map(value => <option key={value}>{value}</option>)}</select></label>
+          {widgetConfig.map(widget => <label key={widget.id}><input type="checkbox" checked={layoutDraft.widgets[widget.id]} onChange={event => setLayoutDraft({ ...layoutDraft, widgets: { ...layoutDraft.widgets, [widget.id]: event.target.checked } })} />{widgetLabel(widget, interfaceLocale)}</label>)}
+        </div>
+      </section>}
       <div className="interface-stage">
       <AppTopBar
         now={now}
@@ -3770,7 +3962,7 @@ export default function App() {
         onOpenProfile={() => openProfileSettings(setProfileOpen)}
       />
       <div className="dashboard-layout">
-        <section className="main-column">
+        <section className="main-column" ref={element => { if (element) element.inert = Boolean(layoutDraft); }}>
           {displaySettings.visibility.greeting && (
             <section className="greeting" aria-label="Overview">
               <span className="brand-mark" title="Your Browser, Your Workspace.">PikaSpace</span>
@@ -3782,11 +3974,14 @@ export default function App() {
           <QuickActions focusMode={focusMode} locale={interfaceLocale} onToggleFocus={() => setFocusMode((value) => !value)} />
           {!focusMode && displaySettings.visibility.bookmarkGroups && <FavoritesGrid favorites={favorites} favoriteGroups={favoriteGroups} locale={interfaceLocale} onFavoritesChange={setFavorites} />}
         </section>
-        {!focusMode && displaySettings.visibility.widgetStrip && <RightWidgets now={now} stats={stats} media={media} weather={weather} settings={displaySettings} widgetData={widgetData} locale={interfaceLocale} onMediaControl={runControl} onWeatherLocationChange={setWeatherLocation} onWidgetDataChange={setWidgetData} />}
+        {!focusMode && displaySettings.visibility.widgetStrip && <RightWidgets now={now} stats={stats} media={media} weather={weather} settings={displaySettings} widgetData={widgetData} locale={interfaceLocale} companion={companion} widgetOrder={layoutDraft?.order || widgetOrder} editing={Boolean(layoutDraft)} onOrderChange={order => { if (layoutDraft) setLayoutDraft({ ...layoutDraft, order }); }} onHideWidget={id => { if (layoutDraft) setLayoutDraft({ ...layoutDraft, widgets: { ...layoutDraft.widgets, [id]: false } }); }} onMediaControl={runControl} onWeatherLocationChange={setWeatherLocation} onWidgetDataChange={setWidgetData} />}
       </div>
       </div>
       {settingsOpen && (
         <SettingsPanel
+          companion={companion}
+          onEditLayout={startLayoutEditing}
+          onThemePreview={setThemePreview}
           settings={settings}
           favorites={favorites}
           favoriteGroups={favoriteGroups}
@@ -3803,11 +3998,12 @@ export default function App() {
             if (data.widgetData) setWidgetData(data.widgetData);
             const backup = data as any;
             if (backup.profile && typeof backup.profile.displayName === "string") saveProfile({ ...profile, displayName: backup.profile.displayName.slice(0, 80), avatarDataUrl: safeImageData(backup.profile.avatarDataUrl), locale: normalizeInterfaceLocale(backup.profile.locale) });
-            if (Array.isArray(backup.widgetOrder)) { try { localStorage.setItem(WIDGET_ORDER_KEY, JSON.stringify(backup.widgetOrder)); window.dispatchEvent(new Event("pikanav:widget-order")); } catch {} }
+            if (Array.isArray(backup.widgetOrder)) saveWidgetOrder(normalizeWidgetOrder(backup.widgetOrder) as WidgetId[]);
             reportStorageStatus("Settings imported.");
           }}
           onResetAll={() => {
             void resetAll();
+            saveWidgetOrder([...defaultWidgetOrder]);
             setSettingsOpen(false);
           }}
         />

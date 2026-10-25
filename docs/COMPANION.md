@@ -2,6 +2,14 @@
 
 The optional Windows companion provides desktop media metadata/controls and CPU, physical RAM, and fixed-disk usage. GPU readings remain unavailable. Browser music does not require this companion.
 
+## Dashboard connection status
+
+System Monitor and **Settings → About PikaSpace** show the shared companion status. **Download Companion** opens the official [GitHub Releases page](https://github.com/MelonPika/PikaSpace/releases); **Learn More** opens this guide. Installation is optional.
+
+Chrome starts the native host on demand. The extension cannot independently distinguish an installed helper that is not running from an unavailable installation, so it does not claim that state. A missing/unregistered host is **Not detected**; an exited/closed host is **Disconnected**. Access errors, communication/timeouts, and incompatible responses have separate states. A successful existing `ping` with a supported 1.x version establishes the connection; missing or unsupported versions prompt an update.
+
+All native consumers share a serialized availability gate. Failed connections back off from 60 seconds up to 5 minutes and retain the cooldown in Chrome session storage across MV3 worker suspension. **Retry Connection** bypasses that cooldown, with a three-second rate limit. Visible system metrics poll every five seconds while available and at most once per minute while unavailable. Browser-media scans remain independent; they do not repeatedly launch a missing helper. Reconnection restores native features without reloading the dashboard. No native protocol fields, host identifiers, installation paths, or extension permissions have changed.
+
 ## Install, update, and remove
 
 Distribute `releases/companion/PikaSpace-Companion-1.0.0-Setup-x64.exe` with `INSTALL.txt` and `SHA256SUMS.txt`. Users run the EXE, keep **Connect automatically** selected, install, and refresh the dashboard. There is normally no ID to copy. The runtime is included; no SDK, shared .NET runtime, command line, or administrator permission is required. The target is Windows 10 version 2004 or later / Windows 11 on x64.
