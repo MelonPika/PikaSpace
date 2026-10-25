@@ -16,7 +16,9 @@ Settings save locally first. Small preference collections also use Chrome sync w
 
 ## Use the dashboard
 
-- Choose a search engine and mode, then type a search or website address. Arrow keys select suggestions; Enter opens the selected result. Perplexity has no autocomplete. Image selection searches by filename; the image is not uploaded for reverse-image recognition.
+- Choose a search engine and mode, then type a search or website address. Arrow keys select suggestions; Enter opens the selected result. Perplexity has no autocomplete.
+- **Search by voice:** read the speech-service notice, choose **Start listening**, and allow the microphone if Chrome asks. Review or edit the recognized text, then choose **Use text** or search with your current engine. **Stop listening** finishes a phrase; **Cancel** or Escape stops the attempt and restores your earlier text. Browser speech support, microphone availability, connection, and policy restrictions can limit recognition. No Windows Companion is needed.
+- **Search by image:** preview a PNG, JPG, or WebP file (up to 10 MB), then continue to Google Images/Lens or Bing Images in a new tab. On the provider's page, click its camera / Search by image button and choose the same file again. PikaSpace does not upload the image or search by its filename. DuckDuckGo/Perplexity users receive an explanation and can explicitly choose Google or Bing for this handoff without changing their regular engine.
 - Use the **+** tile to add favorites and right-click a favorite to edit/delete it. Manage groups under **Settings → Layout**.
 - Enable widgets under **Settings → Widgets**. Drag cards to reorder them, or focus a card and use **Alt + Up/Down**. Focus hides widgets/favorites; select it again to restore them.
 - Notes/tasks save on this device. The complete task list scrolls and supports up to 100 tasks; delete a task before adding another at the limit.

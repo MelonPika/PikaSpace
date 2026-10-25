@@ -426,12 +426,13 @@ try {
   await send('Page.navigate', { url:`chrome-extension://${original.id}/index.html` }, page.session);
   await poll(() => evaluate(page.session, 'document.querySelector(".notes-widget textarea")?.value === "Release note saved"'), 'saved note after refresh');
   checked('selected keyboard suggestions and page-refresh persistence');
-  await click(page.session,'button[aria-label="Image search"]');
+  await click(page.session,'button[aria-label="Search by image"]');
   await imageUpload(page.session,'.image-upload-popover input[type=file]','release-photo.png');
-  await poll(()=>evaluate(page.session,'new URL(location.href).searchParams.get("q") === "release photo"'),'image filename search');
-  await send('Page.navigate',{url:`chrome-extension://${original.id}/index.html`},page.session);
-  await poll(()=>evaluate(page.session,'Boolean(document.querySelector(".pikanav-page"))'),'dashboard after image search');
-  checked('image filename search navigates without uploading image content');
+  await poll(()=>evaluate(page.session,'document.querySelector(".image-upload-popover img")?.complete'),'image preview');
+  assert.ok(await evaluate(page.session,'location.protocol === "chrome-extension:"'));
+  await clickText(page.session,'.search-tool-actions button','Cancel');
+  assert.equal(await evaluate(page.session,'Boolean(document.querySelector(".image-upload-popover"))'),false);
+  checked('image preview and cancellation preserve the dashboard without uploading content');
   await click(page.session, 'button[aria-label="Settings"]');
   await clickText(page.session, '.settings-sidebar nav button', 'Data & Backup');
   await importBackup(page.session, { settings: { widgets:{weather:true,news:true,notes:true,tasks:true,music:true,clock:true,system:false},visibility:{topBarStats:false} }, weatherLocation:{name:'Test city',country:'Test',latitude:1.35,longitude:103.82,timezone:'Asia/Singapore',source:'manual'} });

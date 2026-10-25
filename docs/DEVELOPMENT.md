@@ -76,6 +76,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean.ps1 -ToolCache
 
 <a id="more-docs"></a>
 
+## Search tools
+
+`src/app/SearchTools.tsx` contains the voice/image dialogs. Native HTML dialogs put them in Chrome's top layer so search-column overflow, focus-mode clipping, and backdrop stacking do not hide controls. `src/app/search-tools.mjs` owns the recognition lifecycle and pure file/provider validation. Neither feature needs the Windows Companion, new dependencies, manifest permissions, storage fields, or identity changes.
+
+Voice uses the supported `SpeechRecognition` / `webkitSpeechRecognition` API after explicit consent. A `getUserMedia({ audio: true })` permission-check stream is stopped immediately; recognition then owns capture. This is the standard browser speech service, not a guarantee of on-device recognition, and no language packs are installed. Recognition aborts and releases handlers/timers on completion, cancel, error, or page exit; late permission grants cannot restart a cancelled session. Permission and recognition waits are bounded. [Chrome speech API guide](https://developer.chrome.com/blog/voice-driven-web-apps-introduction-to-the-web-speech-api), [SpeechRecognition reference](https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition).
+
+Image handoffs use official interactive pages (`https://images.google.com/`, `https://www.bing.com/images`). No documented public file-submission contract is used by this project. Extension-local files/object URLs are not automatically transferable to another origin's upload form. Rather than rely on private upload URLs or scripted provider DOM interactions, the user explicitly reselects the file on the provider page. [Google's upload instructions](https://support.google.com/websearch/answer/1325808?hl=en), [Bing's Visual Search instructions](https://support.microsoft.com/en-us/bing/using-bing-visual-search).
+
+`npm test` includes recognition cleanup/race/error and file-validation tests. `npm run test:browser` also runs `tests/search-browser.mjs`: real Chrome microphone denial/grant against a synthetic device, controlled speech-result events, native file chooser selection/cancellation, PNG/JPG/WebP decoding, all four engines, official-page handoffs, keyboard controls, and responsive/focus-mode bounds. Reports/screenshots are under `.verification/search/`. Controlled recognition events do not certify live cloud transcription accuracy or service availability; provider-page uploads remain a user action.
+
 ## Further reading · 更多文档
 
 | Guide | Details · 内容 |

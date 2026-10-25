@@ -14,7 +14,7 @@ Name: **PikaSpace**. Description: **A customizable Chrome new-tab dashboard with
 
 Tagline: **Your Browser, Your Workspace.** Source/support: [PikaSpace](https://github.com/MelonPika/PikaSpace) · [Issues](https://github.com/MelonPika/PikaSpace/issues).
 
-Do not advertise Calendar as available, filename search as reverse-image recognition, or the Windows companion as bundled.
+Do not advertise Calendar as available, automatic image uploads or integrated reverse-image recognition, or the Windows companion as bundled. Image search previews local files and opens the provider's official page; users select/upload the image there. Voice search depends on browser speech support and requires explicit consent before microphone access.
 
 ## Permission justifications
 

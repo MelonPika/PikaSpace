@@ -3691,8 +3691,17 @@ button {
   }
 
   .tool-button {
-    display: none;
+    display: inline-flex;
+    flex: 0 0 34px;
+    width: 34px;
+    min-width: 34px;
+    height: 38px;
+    border-radius: 12px;
   }
+
+  .search-bar { gap: 4px; }
+  .search-bar .submit-button { width: 40px; height: 40px; flex: 0 0 40px; }
+  .search-bar input { font-size: 16px; }
 
   .quick-actions {
     gap: 8px;
@@ -4082,3 +4091,54 @@ button {
   .settings-sidebar nav button span { overflow-wrap: normal; }
   .settings-sidebar nav button svg:first-child { display: block; flex-shrink: 0; }
 }
+
+/* Native modal dialogs use Chrome's top layer, outside the dashboard's clipped
+   scrolling columns and the search bar's backdrop/stacking contexts. */
+.search-tool-dialog,
+.search-tool-dialog.image-upload-popover {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(520px, calc(100vw - 28px));
+  max-width: calc(100vw - 28px);
+  height: fit-content;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+  padding: 22px;
+  border: 1px solid var(--accent-border);
+  border-radius: 22px;
+  background: var(--panel-bg-strong);
+  color: var(--text-primary);
+  box-shadow: var(--panel-shadow);
+  font: inherit;
+  overscroll-behavior: contain;
+}
+.search-tool-dialog::backdrop { background: rgba(0, 0, 0, .66); backdrop-filter: blur(10px); }
+.search-tool-dialog .image-upload-head { margin-bottom: 16px; }
+.search-tool-dialog .image-upload-head > strong { font-size: 20px; color: var(--text-primary); }
+.search-tool-dialog .image-upload-head .icon-button { flex: 0 0 38px; background: var(--surface-soft); color: var(--text-primary); }
+.search-tool-description { margin: 12px 0; color: var(--text-secondary); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.search-tool-actions, .image-provider-options { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.search-tool-actions :is(button, a), .image-provider-options button {
+  display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+  min-height: 40px; max-width: 100%; padding: 9px 13px; border: 1px solid var(--panel-border);
+  border-radius: 12px; background: var(--surface-soft); color: var(--text-primary); font: inherit; font-size: 13px;
+  text-decoration: none; cursor: pointer; line-height: 1.4;
+}
+.search-tool-actions .primary { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast, white); }
+.image-provider-options button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-text); background: color-mix(in srgb, var(--accent) 12%, var(--panel-bg)); }
+.search-tool-actions :is(button, a):hover:not(:disabled), .image-provider-options button:hover { border-color: var(--accent); }
+.search-tool-dialog :is(button, input):disabled { opacity: .5; cursor: default; }
+.search-tool-dialog :is(button, input, a):focus-visible { outline: 2px solid var(--accent-text); outline-offset: 3px; }
+.search-tool-dialog .image-upload-dropzone { width: 100%; font: inherit; }
+.search-tool-dialog .image-upload-dropzone img { width: 100%; height: 160px; object-fit: contain; }
+.search-tool-dialog .image-upload-dropzone small { overflow-wrap: anywhere; color: var(--text-secondary); }
+.voice-status { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px; border: 1px solid var(--panel-border); border-radius: 16px; color: var(--text-primary); font-size: 14px; line-height: 1.5; }
+.voice-status svg { flex-shrink: 0; color: var(--accent-text); }
+.voice-status.is-listening { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel-bg)); }
+.voice-status.is-listening::before { content: ""; flex: 0 0 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent); }
+.voice-transcript { display: grid; gap: 8px; margin-top: 16px; color: var(--text-secondary); font-size: 13px; }
+.voice-transcript input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--panel-border); border-radius: 12px; background: var(--surface-soft); color: var(--text-primary); font: inherit; }
+.voice-interim { display: block; margin: 12px 0; color: var(--accent-text); overflow-wrap: anywhere; font-size: 14px; }
+.search-tool-error { color: var(--text-secondary); line-height: 1.6; }
+@media (max-width: 380px) { .search-tool-dialog, .search-tool-dialog.image-upload-popover { padding: 16px; } }

@@ -1,4 +1,4 @@
-import { ChangeEvent, DragEvent as ReactDragEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import {
   AlertCircle,
@@ -43,6 +43,7 @@ import {
   Zap,
 } from "lucide-react";
 import "./App.css";
+import { VoiceSearchDialog, ImageSearchDialog } from "./SearchTools";
 import { createDashboardStorage } from "./dashboard-storage.mjs";
 import { DEFAULT_COLORS, normalizeHex, normalizeColors, normalizeWidgetOrder, contrastText, readableAccent, luminance } from "./customization.mjs";
 
@@ -1716,12 +1717,6 @@ function requestExtensionSearchSuggestions(query: string, provider: SearchProvid
   });
 }
 
-function getImageSearchTerm(file: File, fallbackQuery: string) {
-  const query = fallbackQuery.trim();
-  if (query) return query;
-  return file.name.replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ").trim() || "uploaded image";
-}
-
 function usePageVisible() {
   const [visible, setVisible] = useState(() => typeof document === "undefined" || document.visibilityState === "visible");
   useEffect(() => {
@@ -2312,12 +2307,9 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
   const [suggestionStatus, setSuggestionStatus] = useState<SuggestionStatus>("idle");
   const [suggestionError, setSuggestionError] = useState("");
   const [activeSuggestion, setActiveSuggestion] = useState(0);
-  const [voiceListening, setVoiceListening] = useState(false);
-  const [imageUploadOpen, setImageUploadOpen] = useState(false);
-  const [imagePreview, setImagePreview] = useState<{ url: string; name: string } | null>(null);
-  const [imageUploadError, setImageUploadError] = useState("");
+  const [searchTool, setSearchTool] = useState<"voice" | "image" | null>(null);
   const heroRef = useRef<HTMLElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const suggestionCacheRef = useRef<Map<string, SuggestionCacheEntry>>(new Map());
   const selectedProvider = searchProviders[provider];
   const trimmedQuery = query.trim();
@@ -2345,6 +2337,12 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
   useEffect(() => {
     setActiveSuggestion(0);
     setSuggestionError("");
+
+    if (searchTool) {
+      setSuggestions([]);
+      setSuggestionStatus("idle");
+      return;
+    }
 
     if (trimmedQuery.length < MIN_SUGGESTION_QUERY_LENGTH || isProbablyUrl(trimmedQuery)) {
       setSuggestions([]);
@@ -2386,26 +2384,7 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [mode, provider, selectedProvider, trimmedQuery]);
-
-  useEffect(() => {
-    return () => recognitionRef.current?.abort?.();
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (imagePreview?.url) URL.revokeObjectURL(imagePreview.url);
-    };
-  }, [imagePreview]);
-
-  useEffect(() => {
-    if (!imageUploadOpen) return;
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setImageUploadOpen(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [imageUploadOpen]);
+  }, [mode, provider, searchTool, selectedProvider, trimmedQuery]);
 
   function runSearch(value = query, searchMode = mode) {
     const trimmed = value.trim();
@@ -2414,62 +2393,10 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
     openUrl(destination, true);
   }
 
-  function startVoiceSearch() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      openUrl(searchProviders.google.buildUrl(query || "voice search", "web"), true);
-      return;
-    }
-
-    recognitionRef.current?.abort?.();
-    const recognition = new SpeechRecognition();
-    recognitionRef.current = recognition;
-    recognition.lang = locale;
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.onstart = () => setVoiceListening(true);
-    recognition.onerror = () => setVoiceListening(false);
-    recognition.onend = () => setVoiceListening(false);
-    recognition.onresult = (event: any) => {
-      const transcript = String(event.results?.[0]?.[0]?.transcript || "").trim();
-      if (!transcript) return;
-      setQuery(transcript);
-      setSuggestionsOpen(false);
-      runSearch(transcript);
-    };
-    try { recognition.start(); } catch { setVoiceListening(false); setSuggestionError("Voice search is unavailable. Type your search instead."); setSuggestionStatus("error"); setSuggestionsOpen(true); }
-  }
-
-  function openImageUpload() {
-    setImageUploadError("");
+  function openSearchTool(tool: "voice" | "image") {
     setProviderOpen(false);
     setSuggestionsOpen(false);
-    setImageUploadOpen(true);
-  }
-
-  function handleImageFile(file?: File) {
-    setImageUploadError("");
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setImageUploadError("Please choose an image file.");
-      return;
-    }
-
-    const searchTerm = getImageSearchTerm(file, query);
-    setImagePreview((current) => {
-      if (current?.url) URL.revokeObjectURL(current.url);
-      return { url: URL.createObjectURL(file), name: file.name };
-    });
-    setMode("images");
-    setQuery(searchTerm);
-    setSuggestionsOpen(false);
-    setImageUploadOpen(false);
-    openUrl(selectedProvider.buildUrl(searchTerm, "images"), true);
-  }
-
-  function handleImageDrop(event: ReactDragEvent<HTMLLabelElement>) {
-    event.preventDefault();
-    handleImageFile(event.dataTransfer.files?.[0]);
+    setSearchTool(tool);
   }
 
   function submit(event: FormEvent) {
@@ -2534,6 +2461,7 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
         </div>
         <Search className="search-leading-icon" size={20} />
         <input
+          ref={searchInputRef}
           autoFocus
           value={query}
           onChange={(event) => {
@@ -2552,40 +2480,12 @@ function SearchHero({ settings, locale }: { settings: PikaSettings; locale: Inte
           aria-controls="search-suggestions"
           aria-autocomplete="list"
         />
-        <button className={`tool-button ${voiceListening ? "active" : ""}`} type="button" aria-label={t(locale, "voiceSearch")} title={t(locale, "voiceSearch")} onClick={startVoiceSearch}><Mic size={18} /></button>
-        <button className="tool-button" type="button" aria-label={t(locale, "imageSearch")} title={t(locale, "imageSearch")} onClick={openImageUpload}><ImageIcon size={18} /></button>
+        <button className={`tool-button ${searchTool === "voice" ? "active" : ""}`} type="button" aria-label="Search by voice" title="Search by voice" aria-haspopup="dialog" aria-expanded={searchTool === "voice"} onClick={() => openSearchTool("voice")}><Mic size={18} /></button>
+        <button className={`tool-button ${searchTool === "image" ? "active" : ""}`} type="button" aria-label="Search by image" title="Search by image" aria-haspopup="dialog" aria-expanded={searchTool === "image"} onClick={() => openSearchTool("image")}><ImageIcon size={18} /></button>
         <button className="submit-button" type="submit" aria-label={t(locale, "submitSearch")}><ArrowRight size={21} /></button>
       </form>
-      {imageUploadOpen && (
-        <div className="image-upload-popover" role="dialog" aria-modal="true" aria-label={t(locale, "imageSearch")}>
-          <div className="image-upload-head">
-            <div>
-              <strong>{t(locale, "imageSearch")}</strong>
-              <span>{selectedProvider.label} Images</span>
-            </div>
-            <button type="button" className="icon-button" onClick={() => setImageUploadOpen(false)} aria-label="Close image upload"><X size={15} /></button>
-          </div>
-          <label
-            className="image-upload-dropzone"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={handleImageDrop}
-          >
-            {imagePreview ? <img src={imagePreview.url} alt="" /> : <ImageIcon size={28} />}
-            <span>Choose an image to search by filename</span>
-            <small>{imagePreview?.name || "The filename becomes your image search. The image itself is not uploaded."}</small>
-            <input
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={(event) => {
-                handleImageFile(event.target.files?.[0]);
-                event.target.value = "";
-              }}
-            />
-          </label>
-          {imageUploadError && <p className="image-upload-error">{imageUploadError}</p>}
-        </div>
-      )}
+      {searchTool === "voice" && <VoiceSearchDialog locale={locale} query={query} provider={{ id: provider, label: selectedProvider.label }} onQueryChange={setQuery} onClose={() => setSearchTool(null)} onUseText={() => { setSearchTool(null); window.requestAnimationFrame(() => searchInputRef.current?.focus()); }} onSearch={() => { setSearchTool(null); runSearch(query); }} />}
+      {searchTool === "image" && <ImageSearchDialog provider={{ id: provider, label: selectedProvider.label }} onClose={() => setSearchTool(null)} />}
       {showSuggestionPanel && (
         <div className="suggestions-menu" id="search-suggestions" role="listbox">
           {suggestionStatus === "loading" && (
