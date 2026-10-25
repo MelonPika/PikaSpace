@@ -18,7 +18,7 @@ To refresh the images, load a current build into an isolated Chrome profile, con
 - [wordmark-light.svg](wordmark-light.svg): dark lettering for light GitHub themes.
 - [wordmark-dark.svg](wordmark-dark.svg): light lettering for dark GitHub themes.
 
-These self-contained SVG wordmarks embed the supplied mascot PNG and use system-font fallbacks for the text. They contain no scripts, external images, or remote fonts. The README selects the suitable variant with a standard picture element; the light variant is the fallback.
+These self-contained SVG wordmarks embed the supplied mascot PNG and use system-font fallbacks for the text. They contain no scripts, external images, or remote fonts. These optional wordmarks remain available for other project materials. The English and Chinese READMEs use the mascot PNG directly in a simple centered header.
 
 ## Regenerating the brand assets
 
