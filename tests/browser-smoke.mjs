@@ -182,6 +182,7 @@ try {
     if(mode!=='missing') await new Promise(resolve=>setTimeout(resolve,3100));
     await clickText(page.session,'.companion-actions button','Retry Connection');
     await poll(async()=> (await evaluate(page.session,'chrome.runtime.sendMessage({type:"COMPANION_STATUS"})')).companion.state===state, `companion ${state}`);
+    await poll(()=>evaluate(page.session, `Boolean(document.querySelector(".music-companion-notice")) === ${mode === 'missing'}`), `music install notice for ${state}`);
     if(mode==='missing') {
       assert.ok(await evaluate(page.session,'document.querySelector(".companion-notice").textContent.includes("Windows Companion Required")'));
       const before=await evaluate(workerSession,'nativeFixture.calls');
@@ -192,6 +193,20 @@ try {
   await click(page.session,'.settings-close');
   await poll(()=>evaluate(page.session,'document.querySelector(".system-card")?.textContent.includes("42%")'),'system stats restored after reconnect');
   checked('About manifest version, safe official links, license disclosure and all observable companion states');
+  await click(page.session,'button[aria-label="Settings"]');
+  await clickText(page.session,'.settings-sidebar nav button','About PikaSpace');
+  await evaluate(workerSession,'nativeFixture.mode="missing"');
+  await new Promise(resolve=>setTimeout(resolve,3100));
+  await clickText(page.session,'.companion-actions button','Retry Connection');
+  await poll(()=>evaluate(page.session,'Boolean(document.querySelector(".music-companion-notice"))'),'music install notice after companion removal');
+  await click(page.session,'.settings-close');
+  await click(page.session,'button[aria-label="Dismiss companion install notice"]');
+  await poll(()=>evaluate(page.session,'!document.querySelector(".music-companion-notice")'),'dismissed music install notice');
+  await send('Page.reload',{},page.session);
+  await poll(()=>evaluate(page.session,'Boolean(document.querySelector(".music-card"))'),'reloaded dashboard after dismissal');
+  assert.equal((await evaluate(page.session,'chrome.runtime.sendMessage({type:"COMPANION_STATUS"})')).companion.state,'not-detected');
+  assert.equal(await evaluate(page.session,'Boolean(document.querySelector(".music-companion-notice"))'),false,'dismissal must survive reload while the companion is still missing');
+  checked('music install notice follows companion availability and stays dismissed after reload');
   await evaluate(workerSession,'chrome.runtime.connectNative=savedConnectNative');
   await click(page.session,'button[aria-label="Settings"]');
   await clickText(page.session,'.accent-grid button','Custom');
@@ -570,6 +585,7 @@ try {
   assert.equal(noCompanion.requiresBrowserAccess, false);
   await send('Target.closeTarget', { targetId: emptyDashboard.targetId });
   const mediaPage = await open(`http://127.0.0.1:${port}/media`);
+  await poll(() => evaluate(mediaPage.session, 'Boolean(document.querySelector("audio"))'), 'browser audio fixture');
   await evaluate(mediaPage.session, 'document.querySelector("audio").play().then(() => true)', true);
   const dashboard = await open(`chrome-extension://${granted.id}/index.html`);
   await poll(() => evaluate(dashboard.session, 'document.querySelector(".music-card")?.textContent.includes("Portable media test")'), 'browser track metadata');

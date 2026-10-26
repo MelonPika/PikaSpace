@@ -301,6 +301,7 @@ const PROFILE_AVATAR_KEY = "pikanav.profile.avatarDataUrl";
 const PROFILE_LOCALE_KEY = "pikanav.locale";
 const WIDGET_ORDER_KEY = "pikanav.widgetOrder";
 const WIDGET_DATA_KEY = "pikanav.widgetData";
+const MUSIC_COMPANION_NOTICE_DISMISSED_KEY = "pikanav.musicCompanionNoticeDismissed";
 const SYNC_WRITE_DEBOUNCE_MS = 800;
 const CLOCK_TICK_MS = 1000;
 const SYSTEM_STATS_POLL_MS = 5000;
@@ -551,6 +552,7 @@ const enUi = {
   browserMediaAccess: "Enable site access to read and control audio or video in Chrome tabs.",
   enableBrowserMedia: "Enable browser media",
   browserMediaDeclined: "Site access was declined. You can enable it whenever you are ready.",
+  dismissCompanionNotice: "Dismiss companion install notice",
   chromeTab: "Chrome tab",
   previousTrack: "Previous track",
   play: "Play",
@@ -749,6 +751,7 @@ const uiText = {
     browserMediaAccess: "启用网站访问权限以读取和控制 Chrome 标签页中的音频或视频。",
     enableBrowserMedia: "启用浏览器媒体",
     browserMediaDeclined: "网站访问权限未获批准。您可以随时重新启用。",
+    dismissCompanionNotice: "关闭本地助手安装提示",
     chromeTab: "Chrome 标签页",
     focus: "专注",
     focusOn: "专注中",
@@ -2829,10 +2832,19 @@ function TodayCard({ now, settings, locale }: { now: Date; settings: PikaSetting
   );
 }
 
-function MusicCard({ media, locale, onControl }: { media: MediaSession; locale: InterfaceLocale; onControl: (command: "previous" | "playPause" | "next") => void }) {
+function MusicCard({ media, locale, companion, onControl }: { media: MediaSession; locale: InterfaceLocale; companion: CompanionStatus; onControl: (command: "previous" | "playPause" | "next") => void }) {
   const [permissionError, setPermissionError] = useState("");
+  const [companionNoticeDismissed, setCompanionNoticeDismissed] = useState(() => {
+    try { return browserStorage?.getItem(MUSIC_COMPANION_NOTICE_DISMISSED_KEY) === "true"; }
+    catch { return false; }
+  });
   const isPlaying = /playing/i.test(media.playbackStatus);
   const disabled = media.status !== "ready" || !media.hasSession || Boolean(media.commandPending);
+  function dismissCompanionNotice() {
+    setCompanionNoticeDismissed(true);
+    try { browserStorage?.setItem(MUSIC_COMPANION_NOTICE_DISMISSED_KEY, "true"); }
+    catch { /* The notice remains dismissed for this session if storage is unavailable. */ }
+  }
   function enableBrowserMedia() {
     setPermissionError("");
     chromeApi?.permissions?.request({ origins: ["http://*/*", "https://*/*"] }, (granted: boolean) => {
@@ -2873,7 +2885,10 @@ function MusicCard({ media, locale, onControl }: { media: MediaSession; locale: 
         <button type="button" onClick={enableBrowserMedia}>{t(locale, "enableBrowserMedia")}</button>
       </div>}
       {permissionError && <p className="widget-note" role="status">{permissionError}</p>}
-      <p className="widget-note">Browser playback works without the companion. Windows desktop media requires the optional <a href={`${PROJECT_URL}/releases`} target="_blank" rel="noopener noreferrer">Windows Companion</a>.</p>
+      {companion.state === "not-detected" && !companionNoticeDismissed && <div className="music-companion-notice">
+        <p className="widget-note">Browser playback works without the companion. Windows desktop media requires the optional <a href={`${PROJECT_URL}/releases`} target="_blank" rel="noopener noreferrer">Windows Companion</a>.</p>
+        <button type="button" className="companion-notice-dismiss" onClick={dismissCompanionNotice} aria-label={t(locale, "dismissCompanionNotice")} title={t(locale, "dismissCompanionNotice")}><X size={14} aria-hidden="true" /></button>
+      </div>}
     </aside>
   );
 }
@@ -3209,7 +3224,7 @@ function RightWidgets({ now, stats, media, weather, settings, widgetData, locale
 
   function renderWidget(widget: (typeof widgetConfig)[number]) {
     if (widget.id === "clock") return <TodayCard now={now} settings={settings} locale={locale} />;
-    if (widget.id === "music") return <MusicCard media={media} locale={locale} onControl={onMediaControl} />;
+    if (widget.id === "music") return <MusicCard media={media} locale={locale} companion={companion} onControl={onMediaControl} />;
     if (widget.id === "system") return <SystemStatsWidget stats={stats} locale={locale} companion={companion} />;
     if (widget.id === "weather") return <WeatherWidget locale={locale} weather={weather} onLocationChange={onWeatherLocationChange} />;
     if (widget.id === "notes") return <QuickNotesWidget data={widgetData} onChange={onWidgetDataChange} locale={locale} />;
