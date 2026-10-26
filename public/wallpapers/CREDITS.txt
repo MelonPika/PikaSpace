@@ -1,0 +1,46 @@
+PikaSpace built-in wallpaper photographs
+
+Downloaded 2026-10-26. All six photographs were verified as free to use under
+the Unsplash License: https://unsplash.com/license
+Personal and commercial use, modification, and redistribution are permitted.
+The images may not be sold without significant modification or compiled to
+replicate a competing image service. No endorsement is implied.
+
+Adaptations: cropped and resized to 2560 x 1600 and 480 x 300; WebP compression.
+
+Aurora (aurora.webp and aurora-thumb.webp)
+Photo: Priscilla Du Preez 🇨🇦
+Source: https://unsplash.com/photos/reflecting-photography-mountain-HhCANDrFzZ0
+Original image: https://images.unsplash.com/photo-1464054313797-e27fb58e90a9
+License: https://unsplash.com/license
+
+Cosmos (cosmos.webp and cosmos-thumb.webp)
+Photo: NASA Hubble Space Telescope
+Source: https://unsplash.com/photos/a-spiral-galaxy-with-stars-in-the-background-KWLeJjzT1lU
+Original image: https://images.unsplash.com/photo-1707057538436-2d8209c24698
+License: https://unsplash.com/license
+Additional credit: NASA, ESA, and F. Summers, J. DePasquale, and D. Player (STScI).
+
+Alpine Lake (mountain.webp and mountain-thumb.webp)
+Photo: Luca Bravo
+Source: https://unsplash.com/photos/brown-house-near-body-of-water-zAjdgNXsMeg
+Original image: https://images.unsplash.com/photo-1470770841072-f978cf4d019e
+License: https://unsplash.com/license
+
+Forest (forest.webp and forest-thumb.webp)
+Photo: Lukasz Szmigiel
+Source: https://unsplash.com/photos/forest-trees-jFCViYFYcus
+Original image: https://images.unsplash.com/photo-1441974231531-c6227db76b6e
+License: https://unsplash.com/license
+
+Desert Dunes (dunes.webp and dunes-thumb.webp)
+Photo: Diego Jimenez
+Source: https://unsplash.com/photos/landscape-photography-of-sand-dunes-DV1mP1-H9GU
+Original image: https://images.unsplash.com/photo-1494783404829-a93883e74b68
+License: https://unsplash.com/license
+
+Iceland Coast (coast.webp and coast-thumb.webp)
+Photo: Jeremy Bishop
+Source: https://unsplash.com/photos/aerial-photography-of-coastline-190N6i-Rdb0
+Original image: https://images.unsplash.com/photo-1511314413493-811b0a0522f0
+License: https://unsplash.com/license

@@ -14,11 +14,19 @@ Layout drafts never write to storage. Saving updates only layout preferences in 
 
 Choose **Appearance → Custom** to reveal native color pickers and HEX fields. Three- and six-digit HEX colors are accepted, with or without `#`. Invalid fields show an error and disable Save. Valid edits preview immediately; **Save colors** commits them, while **Cancel preview**, leaving Appearance, or closing Settings discards the preview.
 
-Enable **Use custom background and card colors** to apply those surfaces. Custom surfaces take priority over the wallpaper preset's base background; a selected custom wallpaper image remains an image layer. Accent presets and saved custom colors share the same CSS tokens. **Reset theme colors** restores the default purple and disables custom surfaces, preserving other settings.
+Choose **Dark**, **Light**, or **Auto** in Appearance. Auto follows system changes immediately and uses the same complete palette as the explicit modes, including menus, dialogs, fields, and widgets. Selecting a theme disables custom card colors so the chosen theme takes effect.
 
-Flat custom backgrounds bypass preset wallpaper overlays so the rendered color matches the contrast calculation. Glass opacity and preset blur/dimming controls are disabled while those flat surfaces are active; **Wallpaper → Use wallpaper backgrounds** restores them. Uploaded wallpaper images retain their existing adjustments.
+Enable **Use custom card color** to apply an opaque card color with automatic text contrast. Card color and wallpaper are independent; selecting a photo preserves your custom cards. **Reset theme colors** restores the default purple and disables custom cards, preserving the chosen background.
 
-Colors are normalized into `settings.customColors` (`accent`, `background`, `card`); `settings.customSurfaces` enables surface overrides. These optional additions use the existing local/sync storage and export/import path. Existing backups without them load defaults; an older fixed Custom accent retains its magenta color. Text on custom surfaces and filled accent controls chooses black or white automatically; accent text is adjusted for contrast. Custom cards use opaque surfaces to keep contrast predictable. Independent secondary-accent and arbitrary text-color controls are not exposed.
+Colors and background choices use the existing local/sync settings record and export/import path. Older custom background settings migrate to Solid color without losing the saved color; uploaded backgrounds remain uploaded backgrounds. Old Abstract and Gradient presets map to Forest and Iceland Coast. Text on solid backgrounds and custom cards chooses black or white automatically, and accent text is adjusted for contrast.
+
+## Wallpaper and solid backgrounds
+
+**Wallpaper** offers six bundled photographs: Aurora, Cosmos, Alpine Lake, Forest, Desert Dunes, and Iceland Coast. Their previews use the same crops as the full images. Both photos and previews work offline, with no wallpaper service requests. Source and license details are available under **Photo credits & licenses** and in the packaged `wallpapers/CREDITS.txt`.
+
+Choose **Solid color** for a background without an image or overlay. Select a preset, use the color picker, or enter a three- or six-digit HEX value and choose **Apply color**. Changing the theme preserves the selected background color. Wallpaper blur and dim controls apply only to photographs and uploaded images; they never alter a solid color.
+
+**Upload custom wallpaper** selects a local image. Switching to a built-in photo or solid background keeps the uploaded image available for later use. Wallpaper choices, colors, blur, and dimming persist after reload and are included in backups.
 
 ## About and companion status
 

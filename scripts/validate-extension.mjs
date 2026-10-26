@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { extensionIdFromKey } from "./extension-identity.mjs";
+import { WALLPAPERS } from "../src/app/wallpapers.mjs";
 
 export async function validateExtension(directory) {
   const manifest = JSON.parse(await readFile(path.join(directory, "manifest.json"), "utf8"));
@@ -18,7 +19,7 @@ export async function validateExtension(directory) {
   assert.ok(manifest.host_permissions.every((origin) => !/googleapis\.com|calendar/i.test(origin)));
   assert.equal(manifest.background.type, "module");
   assert.ok(manifest.permissions.includes("scripting"));
-  for (const filename of [manifest.chrome_url_overrides.newtab, manifest.background.service_worker, "media.js", "companion.js"]) {
+  for (const filename of [manifest.chrome_url_overrides.newtab, manifest.background.service_worker, "media.js", "companion.js", "wallpapers/CREDITS.txt", ...WALLPAPERS.flatMap(item => [item.image, item.thumbnail])]) {
     assert.ok((await stat(path.join(directory, filename))).isFile(), `Missing ${filename}`);
   }
   for (const [size, filename] of Object.entries(manifest.icons)) {

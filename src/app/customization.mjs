@@ -1,6 +1,10 @@
 export const DEFAULT_COLORS = { accent: "#8b5cf6", background: "#050911", card: "#0a101e" };
 export const WIDGET_IDS = ["clock", "music", "system", "weather", "notes", "tasks", "news"];
 
+export function resolveTheme(mode, systemLight = false) {
+  return mode === "light" || (mode === "auto" && systemLight) ? "light" : "dark";
+}
+
 export function normalizeHex(value) {
   if (typeof value !== "string") return null;
   const hex = value.trim().replace(/^#/, "");

@@ -45,7 +45,8 @@ import {
 import "./App.css";
 import { VoiceSearchDialog, ImageSearchDialog } from "./SearchTools";
 import { createDashboardStorage } from "./dashboard-storage.mjs";
-import { DEFAULT_COLORS, normalizeHex, normalizeColors, normalizeWidgetOrder, contrastText, readableAccent, luminance } from "./customization.mjs";
+import { DEFAULT_COLORS, normalizeHex, normalizeColors, normalizeWidgetOrder, contrastText, readableAccent, luminance, resolveTheme } from "./customization.mjs";
+import { WALLPAPERS, normalizeBackground } from "./wallpapers.mjs";
 
 declare const chrome: any;
 
@@ -95,7 +96,8 @@ type PikaSettings = {
   panelOpacity: number;
   interfaceScale: number;
   settingsScale: number;
-  wallpaper: "aurora" | "cosmos" | "mountain" | "abstract" | "solid-dark" | "gradient" | "custom";
+  wallpaper: "aurora" | "cosmos" | "mountain" | "forest" | "dunes" | "coast" | "solid" | "custom";
+  wallpaperColor: string;
   wallpaperBlur: number;
   wallpaperDim: number;
   density: "compact" | "comfortable" | "spacious";
@@ -330,6 +332,7 @@ const defaultSettings: PikaSettings = {
   interfaceScale: 100,
   settingsScale: 92,
   wallpaper: "aurora",
+  wallpaperColor: DEFAULT_COLORS.background,
   wallpaperBlur: 0,
   wallpaperDim: 40,
   density: "comfortable",
@@ -1097,9 +1100,13 @@ function mergeSettings(value: unknown): PikaSettings {
   next.customColors = normalizeColors(incoming.customColors) as CustomColors;
   if (incoming.accentColor === "custom" && !incoming.customColors) next.customColors.accent = accentThemes.custom.color;
   next.customSurfaces = incoming.customSurfaces === true;
+  const background = normalizeBackground(incoming, next.customColors.background);
+  next.wallpaper = background.wallpaper as PikaSettings["wallpaper"];
+  next.wallpaperColor = background.wallpaperColor;
+  next.customColors.background = next.wallpaperColor;
   const choices = {
     themeMode: ["dark", "light", "auto"], accentColor: Object.keys(accentThemes),
-    fontFamily: ["inter", "system", "geist"], wallpaper: ["aurora", "cosmos", "mountain", "abstract", "solid-dark", "gradient", "custom"],
+    fontFamily: ["inter", "system", "geist"],
     density: ["compact", "comfortable", "spacious"], searchPosition: ["top", "center", "bottom"],
   };
   for (const [key, values] of Object.entries(choices)) {
@@ -1741,6 +1748,19 @@ function usePrefersReducedMotion() {
     return () => query.removeEventListener?.("change", update);
   }, []);
   return reducedMotion;
+}
+
+function useSystemLightTheme() {
+  const [light, setLight] = useState(() => Boolean(window.matchMedia?.("(prefers-color-scheme: light)").matches));
+  useEffect(() => {
+    const query = window.matchMedia?.("(prefers-color-scheme: light)");
+    if (!query) return;
+    const update = () => setLight(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return light;
 }
 
 function useDialogFocus(selector: string, onClose: () => void, enabled = true) {
@@ -3329,7 +3349,7 @@ function CustomColorEditor({ settings, onSave, onPreview }: { settings: PikaSett
     }
   }
   return <div className="custom-color-editor">
-    <p>Preview your colors, then save. Background and card colors apply when custom surfaces are enabled; text contrast adjusts automatically.</p>
+    <p>Preview your colors, then save. Background color applies to Solid color in Wallpaper. Enable custom card color to apply your card color; text contrast adjusts automatically.</p>
     {keys.map(key => <div className="color-field" key={key}>
       <label htmlFor={`color-${key}`}>{key === "accent" ? "Primary accent" : key === "background" ? "Dashboard background" : "Card background"}</label>
       <input type="color" aria-label={`Pick ${key} color`} value={lastValid.current[key]} onChange={event => change(key, event.target.value)} />
@@ -3341,6 +3361,24 @@ function CustomColorEditor({ settings, onSave, onPreview }: { settings: PikaSett
       <button type="button" onClick={() => { setValues(settings.customColors); lastValid.current = settings.customColors; onPreview(null); setMessage("Preview discarded."); }}>Cancel preview</button>
     </div>
     {message && <p role="status">{message}</p>}
+  </div>;
+}
+
+function SolidBackgroundEditor({ value, onChange }: { value: string; onChange: (color: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const color = normalizeHex(draft);
+  useEffect(() => setDraft(value), [value]);
+  return <div className="solid-background-editor">
+    <div className="background-swatches" aria-label="Background color presets">
+      {["#050911", "#1e293b", "#20382f", "#382d45", "#f8fafc", "#f4eddf", "#e7e4f3", "#dce9e5"].map(swatch => <button key={swatch} type="button" aria-label={`Use ${swatch} background`} aria-pressed={value === swatch} style={{ background: swatch, color: contrastText(swatch) }} onClick={() => onChange(swatch)}>{value === swatch && <Check size={18} />}</button>)}
+    </div>
+    <div className="color-field">
+      <label htmlFor="solid-background-hex">Background color</label>
+      <input type="color" aria-label="Pick background color" value={value} onChange={event => onChange(event.target.value)} />
+      <input id="solid-background-hex" aria-label="Solid background HEX" aria-invalid={!color} aria-describedby={!color ? "solid-background-error" : undefined} maxLength={7} spellCheck={false} value={draft} onChange={event => setDraft(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && color) onChange(color); }} />
+      {!color && <small id="solid-background-error" role="alert">Enter a 3- or 6-digit HEX color.</small>}
+    </div>
+    <button type="button" className="settings-action" disabled={!color} onClick={() => { if (color) onChange(color); }}>Apply color</button>
   </div>;
 }
 
@@ -3456,15 +3494,6 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
     onFavoritesChange(favorites.map((favorite) => favorite.groupId === groupId ? { ...favorite, groupId: fallbackGroupId } : favorite));
   }
 
-  const wallpaperCards = [
-    { id: "aurora", label: "Aurora" },
-    { id: "cosmos", label: "Cosmos" },
-    { id: "mountain", label: "Mountain" },
-    { id: "abstract", label: "Abstract" },
-    { id: "solid-dark", label: "Solid Dark" },
-    { id: "gradient", label: "Gradient" },
-  ] as const;
-
   return (
     <div className="settings-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="settings-shell" role="dialog" aria-modal="true" aria-label="Settings">
@@ -3495,7 +3524,7 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
                   { id: "light", label: "Light", icon: Sun },
                   { id: "auto", label: "Auto", icon: Monitor },
                 ].map(({ id, label, icon: Icon }) => (
-                  <button key={id} type="button" aria-pressed={settings.themeMode === id} className={settings.themeMode === id ? "active" : ""} onClick={() => update({ themeMode: id as PikaSettings["themeMode"] })}>
+                  <button key={id} type="button" aria-pressed={settings.themeMode === id} className={settings.themeMode === id ? "active" : ""} onClick={() => update({ themeMode: id as PikaSettings["themeMode"], customSurfaces: false })}>
                     <Icon size={24} />
                     <span>{label}</span>
                   </button>
@@ -3514,8 +3543,8 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
                 ))}
               </div>
 
-              {settings.accentColor === "custom" && <CustomColorEditor settings={settings} onSave={customColors => update({ customColors })} onPreview={onThemePreview} />}
-              <ToggleRow label="Use custom background and card colors" enabled={settings.customSurfaces} onChange={customSurfaces => update({ customSurfaces })} />
+              {settings.accentColor === "custom" && <CustomColorEditor settings={settings} onSave={customColors => update({ customColors, wallpaperColor: customColors.background })} onPreview={onThemePreview} />}
+              <ToggleRow label="Use custom card color" enabled={settings.customSurfaces} onChange={customSurfaces => update({ customSurfaces })} />
               <button type="button" className="settings-action" onClick={() => { onThemePreview(null); update({ accentColor: defaultSettings.accentColor, customColors: { ...DEFAULT_COLORS }, customSurfaces: false }); }}>Reset theme colors</button>
               <SectionLabel>{t(locale, "typography")}</SectionLabel>
               <SliderRow label={t(locale, "baseFontSize")} value={settings.fontSize} min={12} max={20} unit="px" onChange={(fontSize) => update({ fontSize })} />
@@ -3530,22 +3559,27 @@ function SettingsPanel({ settings, favorites, favoriteGroups, weatherLocation, w
 
           {tab === "wallpaper" && (
             <SettingsSection title={t(locale, "wallpaperTitle")} subtitle={t(locale, "wallpaperSubtitle")}>
-              {settings.customSurfaces && <><p className="settings-help">Your custom background replaces preset wallpaper colors. Uploaded images still work. Disable custom surfaces to restore preset backgrounds and glass cards.</p><button className="settings-action" type="button" onClick={() => update({ customSurfaces: false })}>Use wallpaper backgrounds</button></>}
               <div className="wallpaper-grid">
-                {wallpaperCards.map((item) => (
-                  <button key={item.id} type="button" className={`wallpaper-card wallpaper-preview-${item.id} ${settings.wallpaper === item.id ? "active" : ""}`} onClick={() => update({ wallpaper: item.id })}>
+                {WALLPAPERS.map((item) => (
+                  <button key={item.id} type="button" aria-pressed={settings.wallpaper === item.id} className={`wallpaper-card ${settings.wallpaper === item.id ? "active" : ""}`} style={{ backgroundImage: `url(${item.thumbnail})` }} onClick={() => update({ wallpaper: item.id as PikaSettings["wallpaper"] })}>
                     <span>{item.label}</span>
+                    {settings.wallpaper === item.id && <Check className="wallpaper-selected" size={18} aria-hidden="true" />}
                   </button>
                 ))}
               </div>
+              <button type="button" aria-pressed={settings.wallpaper === "solid"} className={`solid-wallpaper-option ${settings.wallpaper === "solid" ? "active" : ""}`} onClick={() => update({ wallpaper: "solid" })}><span className="solid-color-preview" style={{ background: settings.wallpaperColor }} /><span>Solid color</span>{settings.wallpaper === "solid" && <Check size={18} />}</button>
+              {settings.wallpaper === "solid" && <SolidBackgroundEditor value={settings.wallpaperColor} onChange={wallpaperColor => update({ wallpaperColor, customColors: { ...settings.customColors, background: wallpaperColor } })} />}
               <input ref={fileInputRef} hidden type="file" accept="image/*" onChange={handleWallpaperUpload} />
               <button className={`upload-wallpaper ${settings.wallpaper === "custom" ? "active" : ""}`} type="button" onClick={() => fileInputRef.current?.click()}>
                 <Upload size={18} />
                 {customWallpaperDataUrl ? "Replace custom wallpaper" : "Upload custom wallpaper"}
               </button>
-              <SectionLabel>Adjustments</SectionLabel>
-              <SliderRow label="Blur" value={settings.wallpaperBlur} min={0} max={20} disabled={settings.customSurfaces && settings.wallpaper !== "custom"} unit="px" onChange={(wallpaperBlur) => update({ wallpaperBlur })} />
-              <SliderRow label="Dim overlay" value={settings.wallpaperDim} min={0} max={90} disabled={settings.customSurfaces && settings.wallpaper !== "custom"} onChange={(wallpaperDim) => update({ wallpaperDim })} />
+              {settings.wallpaper !== "solid" && <>
+                <SectionLabel>Adjustments</SectionLabel>
+                <SliderRow label="Blur" value={settings.wallpaperBlur} min={0} max={20} unit="px" onChange={(wallpaperBlur) => update({ wallpaperBlur })} />
+                <SliderRow label="Dim overlay" value={settings.wallpaperDim} min={0} max={90} onChange={(wallpaperDim) => update({ wallpaperDim })} />
+              </>}
+              <details className="wallpaper-credits"><summary>Photo credits &amp; licenses</summary><p>Photos from Unsplash, bundled for offline use. Free for personal and commercial use under the <a href="https://unsplash.com/license" target="_blank" rel="noopener noreferrer">Unsplash License</a>.</p><ul>{WALLPAPERS.map(item => <li key={item.id}><a href={item.source} target="_blank" rel="noopener noreferrer">{item.label}</a> — {item.author}</li>)}</ul><a href="./wallpapers/CREDITS.txt" target="_blank" rel="noopener noreferrer">Full image credits</a></details>
             </SettingsSection>
           )}
 
@@ -3704,11 +3738,9 @@ function ToggleRow({ label, enabled, onChange }: { label: string; enabled: boole
   return <div className="toggle-row"><span>{label}</span><Toggle label={label} enabled={enabled} onChange={onChange} /></div>;
 }
 
-function getPageStyle(settings: PikaSettings): PikaStyle {
+function getPageStyle(settings: PikaSettings, useLightGlass: boolean): PikaStyle {
   const accentColor = settings.accentColor === "custom" ? settings.customColors.accent : accentThemes[settings.accentColor].color;
-  const systemLight = typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: light)").matches;
-  const useLightGlass = settings.customSurfaces ? luminance(settings.customColors.card) > .179 : settings.themeMode === "light" || (settings.themeMode === "auto" && systemLight);
-  const accentText = readableAccent(accentColor, useLightGlass, settings.customSurfaces ? settings.customColors.card : undefined);
+  const accentText = readableAccent(accentColor, useLightGlass, settings.customSurfaces ? settings.customColors.card : useLightGlass ? "#cbd0d8" : "#3c4554");
   const accent = { color: accentColor, soft: readableAccent(accentColor, false), lightText: accentText };
   const fontFamilies: Record<PikaSettings["fontFamily"], string> = {
     inter: "Inter, ui-sans-serif, system-ui, sans-serif",
@@ -3716,19 +3748,36 @@ function getPageStyle(settings: PikaSettings): PikaStyle {
     geist: "\"Geist\", \"Geist Mono\", ui-sans-serif, system-ui, sans-serif",
   };
   const panelOpacity = settings.panelOpacity / 100;
-  const darkSurfaceOpacity = Math.max(54, settings.panelOpacity - 14) / 100;
-  const darkStrongOpacity = Math.max(68, settings.panelOpacity) / 100;
-  const darkSoftOpacity = Math.max(40, settings.panelOpacity - 30) / 100;
-  const lightSurfaceOpacity = Math.min(0.74, Math.max(0.58, panelOpacity - 0.18));
-  const lightStrongOpacity = Math.min(0.84, Math.max(0.7, panelOpacity - 0.08));
-  const lightSoftOpacity = Math.min(0.62, Math.max(0.44, panelOpacity - 0.3));
+  const darkSurfaceOpacity = Math.max(78, settings.panelOpacity - 6) / 100;
+  const darkStrongOpacity = Math.max(88, settings.panelOpacity) / 100;
+  const darkSoftOpacity = Math.max(68, settings.panelOpacity - 14) / 100;
+  const lightSurfaceOpacity = Math.min(0.96, Math.max(0.86, panelOpacity - 0.02));
+  const lightStrongOpacity = Math.min(0.98, Math.max(0.92, panelOpacity + 0.04));
+  const lightSoftOpacity = Math.min(0.9, Math.max(0.8, panelOpacity - 0.08));
   const lightPanelShadow = "0 16px 44px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.68)";
   const darkPanelShadow = "0 18px 54px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08)";
   return {
+    colorScheme: useLightGlass ? "light" : "dark",
+    "--bg": useLightGlass ? "#edf2f8" : "#050911",
+    "--surface-strong": useLightGlass ? `rgba(248, 250, 252, ${lightStrongOpacity})` : `rgba(10, 16, 30, ${darkStrongOpacity})`,
+    "--topbar-glass": useLightGlass ? `rgba(248, 250, 252, ${lightStrongOpacity})` : `rgba(10, 16, 30, ${darkStrongOpacity})`,
+    "--text": useLightGlass ? "#0f172a" : "#eef5ff",
+    "--text-soft": useLightGlass ? "#334155" : "#aab6c8",
+    "--text-muted": useLightGlass ? "#475569" : "#94a3b8",
+    "--text-dim": useLightGlass ? "#64748b" : "#8b9bb1",
+    "--border": useLightGlass ? "rgba(15, 23, 42, 0.16)" : "rgba(255, 255, 255, 0.15)",
+    "--workspace-text": settings.wallpaper === "solid" ? contrastText(settings.wallpaperColor) : "#f8fafc",
+    "--workspace-secondary": settings.wallpaper === "solid" ? contrastText(settings.wallpaperColor) : "#e2e8f0",
+    "--wallpaper-color": settings.wallpaperColor,
+    "--cyan": useLightGlass ? "#155e75" : "#67d9ec",
+    "--green": useLightGlass ? "#087453" : "#6ee7b7",
+    "--pink": useLightGlass ? "#be185d" : "#f9a8d4",
+    "--amber": useLightGlass ? "#925b05" : "#fbbf24",
+    "--danger": useLightGlass ? "#be123c" : "#fda4af",
     "--ui-scale": settings.interfaceScale / 100,
     "--violet": accent.color,
     "--violet-soft": accent.soft,
-    "--surface": useLightGlass ? `rgba(241, 245, 249, ${lightSurfaceOpacity})` : `rgba(8, 13, 25, ${panelOpacity})`,
+    "--surface": useLightGlass ? `rgba(241, 245, 249, ${lightSurfaceOpacity})` : `rgba(8, 13, 25, ${darkSurfaceOpacity})`,
     "--surface-soft": useLightGlass ? `rgba(248, 250, 252, ${lightSoftOpacity})` : `rgba(255, 255, 255, ${Math.max(4, settings.panelOpacity / 12) / 100})`,
     "--glass-surface": useLightGlass ? `rgba(241, 245, 249, ${lightSurfaceOpacity})` : `rgba(10, 16, 30, ${darkSurfaceOpacity})`,
     "--glass-surface-strong": useLightGlass ? `rgba(248, 250, 252, ${lightStrongOpacity})` : `rgba(10, 16, 30, ${darkStrongOpacity})`,
@@ -3741,7 +3790,7 @@ function getPageStyle(settings: PikaSettings): PikaStyle {
     "--panel-shadow": useLightGlass ? lightPanelShadow : darkPanelShadow,
     "--text-primary": useLightGlass ? "#0f172a" : "#eef5ff",
     "--text-secondary": useLightGlass ? "#334155" : "#aab6c8",
-    "--text-disabled": useLightGlass ? "#94a3b8" : "#445166",
+    "--text-disabled": useLightGlass ? "#64748b" : "#8b9bb1",
     "--accent": accent.color,
     "--accent-soft": useLightGlass ? `color-mix(in srgb, ${accent.color} 14%, rgba(248, 250, 252, 0.92))` : accent.soft,
     "--accent-border": useLightGlass ? `color-mix(in srgb, ${accent.color} 36%, transparent)` : `color-mix(in srgb, ${accent.color} 38%, transparent)`,
@@ -3753,8 +3802,6 @@ function getPageStyle(settings: PikaSettings): PikaStyle {
     "--accent-contrast": contrastText(accent.color),
     "--border-bright": `color-mix(in srgb, ${accent.color} 38%, transparent)`,
     ...(settings.customSurfaces ? {
-      "--custom-background": settings.customColors.background,
-      "--workspace-text": contrastText(settings.customColors.background),
       "--surface": settings.customColors.card,
       "--surface-strong": settings.customColors.card,
       "--topbar-glass": settings.customColors.card,
@@ -3779,6 +3826,7 @@ function getPageStyle(settings: PikaSettings): PikaStyle {
 
 export default function App() {
   const pageVisible = usePageVisible();
+  const systemLight = useSystemLightTheme();
   const prefersReducedMotion = usePrefersReducedMotion();
   const now = useClock(pageVisible);
   const { profile, saveProfile } = useLocalProfile();
@@ -3817,7 +3865,9 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const greetingName = updateGreetingName(profile.displayName);
-  const displaySettings = { ...settings, ...(layoutDraft || {}), ...(themePreview ? { customColors: themePreview, accentColor: "custom" as const } : {}) };
+  const displaySettings = { ...settings, ...(layoutDraft || {}), ...(themePreview ? { customColors: themePreview, wallpaperColor: themePreview.background, accentColor: "custom" as const } : {}) };
+  const surfaceTheme = displaySettings.customSurfaces ? (luminance(displaySettings.customColors.card) > .179 ? "light" : "dark") : resolveTheme(displaySettings.themeMode, systemLight);
+  const wallpaper = WALLPAPERS.find(item => item.id === displaySettings.wallpaper) || WALLPAPERS[0];
   function startLayoutEditing() {
     setLayoutDraft({ widgets: { ...settings.widgets }, visibility: { ...settings.visibility, widgetStrip: true }, density: settings.density, searchPosition: settings.searchPosition, interfaceScale: settings.interfaceScale, order: [...widgetOrder] });
     setFocusMode(false);
@@ -3844,7 +3894,7 @@ export default function App() {
     `search-${displaySettings.searchPosition}`,
     `wallpaper-${displaySettings.wallpaper}`,
     `font-${displaySettings.fontFamily}`,
-    `theme-${displaySettings.themeMode}`,
+    `theme-${surfaceTheme}`,
     displaySettings.customSurfaces ? "has-custom-surfaces" : "",
     layoutDraft ? "layout-editing" : "",
     !pageVisible ? "is-hidden" : "",
@@ -3853,8 +3903,9 @@ export default function App() {
   ].filter(Boolean).join(" ");
 
   return (
-    <main className={pageClasses} style={getPageStyle(displaySettings)} aria-label="PikaSpace new tab dashboard">
+    <main className={pageClasses} data-theme-mode={displaySettings.themeMode} style={getPageStyle(displaySettings, surfaceTheme === "light")} aria-label="PikaSpace new tab dashboard">
       <div className="aurora-bg" aria-hidden="true">
+        <div className="wallpaper-image-layer" style={{ backgroundImage: `url(${wallpaper.image})` }} />
         {customWallpaperDataUrl && <div className="custom-wallpaper-layer" style={{ backgroundImage: `url(${JSON.stringify(customWallpaperDataUrl)})` }} />}
       </div>
       {storageMessage && <div className="storage-status" role="status"><span>{storageMessage}</span><button type="button" aria-label="Dismiss storage message" onClick={() => setStorageMessage("")}><X size={16} /></button></div>}

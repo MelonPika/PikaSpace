@@ -67,7 +67,7 @@ Settings save automatically. **Focus** temporarily hides widgets and favorites.
 
 | Feature | What it does |
 | --- | --- |
-| **Appearance** | Dark, light, or system theme; built-in and uploaded wallpapers; colors, fonts, opacity, and interface size. |
+| **Appearance** | Dark, light, or live system theme; six offline photo wallpapers, uploaded images, or solid colors; fonts, opacity, and interface size. |
 | **Widgets** | Clock, notes, tasks, weather, news, music, and system information, with adjustable order and visibility. |
 | **Search & shortcuts** | Multiple search providers, keyboard-selected suggestions, and grouped favorites. |
 | **Browser media** | Metadata and playback controls for accessible audio/video in Chrome tabs. Track controls depend on the player. |
