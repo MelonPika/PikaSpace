@@ -10,7 +10,7 @@ The packaging script removes the manifest's `key` field from the store ZIP to av
 
 After the first store upload, obtain the assigned store public key/ID from the developer dashboard. Use that public key in a separate local development copy to test with the store identity, and configure the companion for the assigned store ID. See Chrome's [extension key guidance](https://developer.chrome.com/docs/extensions/reference/manifest/key). The local portable key is not a reserved Chrome Web Store identity. Existing local settings require export/import if the ID changes.
 
-Suggested single purpose: **A personal new-tab dashboard for web search, daily shortcuts, notes, tasks, and useful widgets.**
+Use the single purpose description and permission explanations below when completing the item's **Privacy practices** tab.
 
 Name: **PikaSpace**. Description: **A customizable Chrome new-tab dashboard with widgets, shortcuts, music controls, and a personalized workspace.**
 
@@ -18,18 +18,65 @@ Tagline: **Your Browser, Your Workspace.** Source/support: [PikaSpace](https://g
 
 Do not advertise Calendar as available, automatic image uploads or integrated reverse-image recognition, or the Windows companion as bundled. Image search previews local files and opens the provider's official page; users select/upload the image there. Voice search depends on browser speech support and requires explicit consent before microphone access.
 
-## Permission justifications
+## Privacy practices: copy-ready answers
 
-| Permission/access | Purpose |
-| --- | --- |
-| `storage` | Retain preferences/content and optionally sync small preference collections. |
-| `scripting` | Inspect/control permitted HTML media on demand; no persistent content script. |
-| `nativeMessaging` | Optional local Windows desktop media/system metrics; absent hosts fail gracefully. |
-| `geolocation` | Resolve location for enabled weather; chosen cities/fallbacks also work. |
-| Open-Meteo hosts | Weather and city search. |
-| Google/Bing/DuckDuckGo suggestion hosts | Suggestions from the selected supported engine. |
-| Google News host | Selected-topic RSS. |
-| Optional HTTP/HTTPS hosts | User-approved browser-player inspection/control across web tabs; revocable and enforced per frame/document. |
+The missing-justification messages refer to fields in the Chrome Web Store Developer Dashboard. Editing the manifest or uploading a ZIP does not fill these fields. Open the uploaded item's **Privacy practices** tab, paste each answer into the matching field, complete the remote-code and data-use declarations, and save the draft. These answers describe the current 1.0.0 implementation; review them again if the uploaded build changes.
+
+### Single purpose description
+
+PikaSpace replaces Chrome's new-tab page with a customizable personal dashboard that brings web search, favorite shortcuts, notes, tasks, weather, news, and media controls into one workspace. Users can personalize its appearance and widget layout. Optional Windows companion integration displays desktop media and system information in the same dashboard.
+
+### geolocation justification
+
+PikaSpace uses the browser's location API to obtain coordinates for the new-tab weather widget when weather is enabled and no saved location is available. Coordinates and timezone are sent to Open-Meteo to retrieve local conditions and forecasts. Users can choose a city manually; unavailable location access uses a labelled fallback city. Disabling weather stops its refreshes.
+
+### Host permission justification
+
+Required HTTPS hosts support dashboard widgets: api.open-meteo.com retrieves weather for the selected coordinates; geocoding-api.open-meteo.com resolves city searches; suggestqueries.google.com, api.bing.com, and duckduckgo.com return suggestions for text typed into the selected search engine; news.google.com retrieves topic-based news RSS. Optional http://*/* and https://*/* access is requested through Enable browser media so the music widget can detect and control HTML audio/video in permitted tabs and frames. Broad optional access supports players on user-chosen sites, including embedded players, rather than a fixed domain list. Media metadata is displayed locally; artwork may load from its original server. Users can revoke site access in Chrome's extension settings.
+
+### nativeMessaging justification
+
+PikaSpace uses chrome.runtime.connectNative to communicate with the separately installed, optional PikaSpace Windows Companion (com.pikanav.media). This local connection provides desktop media metadata and playback controls, plus CPU, RAM, and fixed-disk metrics for dashboard widgets. It does not send this information to a PikaSpace server. The dashboard and browser media continue to work without the companion.
+
+### Remote code
+
+Select **No, I am not using remote code.** The current extension bundles its JavaScript and uses a local module service worker. API responses, RSS, favicons, and media artwork are data or display resources; their presence does not mean the extension executes remote code. The optional native companion is a separately installed local application.
+
+If an explanation field remains available, use:
+
+> All extension JavaScript is included in the uploaded package. PikaSpace does not download or execute remote JavaScript or WebAssembly. External requests retrieve weather, city results, search suggestions, news, and images, which are processed as data or displayed as images.
+
+Do not select Yes merely to enable a justification box. Manifest V3 does not permit loading and executing remotely hosted extension code; an explanation would not make that implementation acceptable.
+
+### scripting justification
+
+PikaSpace uses chrome.scripting.executeScript to run its packaged media-inspection function in permitted tabs and frames. The music widget reads HTML audio/video playback state, Media Session metadata, artwork URLs, and supported player controls. User actions send play/pause or supported previous/next commands to the displayed media document. It does not install a persistent content script or use this access for advertising or analytics.
+
+### storage justification
+
+PikaSpace uses chrome.storage.local to retain dashboard preferences, favorites and groups, the selected weather location, notes, tasks, and uploaded wallpaper between new-tab sessions. Small preference, favorites, and weather-location collections also use chrome.storage.sync within Chrome's quota. Notes, tasks, and wallpaper files remain local; profile/avatar and widget order use local browser storage. chrome.storage.session keeps temporary companion connection status.
+
+## Data usage and certification
+
+Permission explanations do not complete the data-use section. Review [PRIVACY.md](PRIVACY.md) against the exact uploaded build and the form's current data-category definitions. In particular, account for:
+
+- Location: browser coordinates and timezone sent to Open-Meteo; selected location can also use Chrome sync.
+- Search and website information: typed queries sent to the selected suggestion/search provider, favorite site origins sent to Google for icons, and favorites synchronized through Chrome.
+- Website content: media metadata, page titles used as track-title fallbacks, artwork addresses, and player state read for browser media; artwork can contact its source server.
+- Optional voice input: after explicit consent, the browser speech service may process audio remotely. PikaSpace does not store audio.
+- Dashboard content and personalization: notes, tasks, profile/avatar, and uploaded wallpaper stored locally; limited preference collections can use Chrome sync.
+
+The absence of a PikaSpace backend does not mean no user data is handled or transmitted. Match the form's categories to these flows and keep the listing and public privacy policy consistent. The publisher must review the actual data practices before certifying them.
+
+In the data-use certification section, review and select each applicable required statement confirming that:
+
+1. User data is not sold or transferred for purposes outside the permitted uses.
+2. User data is used and transferred only for the extension's disclosed single purpose.
+3. User data is not used or transferred for creditworthiness or lending decisions.
+
+These statements are a publisher attestation, not another justification text field. Check all required certifications only when they accurately describe the extension and the publisher's practices, then save the Privacy practices draft. A public, stable privacy-policy URL must also be entered; a local Markdown file does not fill that field. Saving the draft does not submit or publish the extension.
+
+## Other permission notes
 
 `identity`, `tabs`, Calendar scopes, and Google API hosts are removed. No history, downloads, notifications, debugger, or unlimited-storage permission is requested; shortcut links open browser pages.
 
@@ -41,4 +88,4 @@ Do not advertise Calendar as available, automatic image uploads or integrated re
 - Supply reviewer steps for browser media and the companion-absent state. Complete remaining manual/platform/live-provider checks in the development and companion guides.
 - Obtain the owner's explicit approval before uploading, submitting, or publishing.
 
-Reviewed on 24 October 2026 against Google's [Program Policies](https://developer.chrome.com/docs/webstore/program-policies/policies), [privacy fields guidance](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy), and [storage API](https://developer.chrome.com/docs/extensions/reference/api/storage). Recheck when submitting. Local checks do not guarantee store acceptance.
+Privacy practices answers reviewed on 6 November 2026 against the current source and Google's [Program Policies](https://developer.chrome.com/docs/webstore/program-policies/policies), [privacy fields guidance](https://developer.chrome.com/docs/webstore/cws-dashboard-privacy), and [User Data FAQ](https://developer.chrome.com/docs/webstore/program-policies/user-data-faq). Recheck when submitting. Local checks do not guarantee store acceptance.
