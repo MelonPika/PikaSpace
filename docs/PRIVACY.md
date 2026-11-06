@@ -1,5 +1,7 @@
 # PikaSpace 1.0 privacy and external services
 
+Last updated: 6 November 2026.
+
 Project and support: [PikaSpace](https://github.com/MelonPika/PikaSpace) · [Issues](https://github.com/MelonPika/PikaSpace/issues).
 
 PikaSpace is a personal new-tab dashboard. It has no PikaSpace account, advertising, analytics, telemetry endpoint, or Calendar sign-in. Shipped code runs locally; no remote JavaScript is downloaded or executed.
@@ -28,4 +30,8 @@ Providers receive ordinary network information such as IP address and handle ser
 
 PikaSpace does not sell data or send notes, tasks, profile photos, or wallpaper files to advertising/analytics services. Optional site access is used to display/control the requested player. No Calendar tokens or requests are used in 1.0; dormant event data is retained.
 
-For support, use the distributor's published contact. The publisher must supply a real support contact and public policy URL before store publication. This local policy is supplied for review/distribution and has not been published to a website.
+## Limited Use
+
+PikaSpace follows the Chrome Web Store User Data Policy, including its Limited Use requirements, when handling information obtained through Chrome APIs. User data is used to provide the dashboard features described above and shared with service providers only as described for those features. PikaSpace does not sell user data, use or transfer it for unrelated purposes or personalized advertising, or use or transfer it for creditworthiness or lending decisions.
+
+For privacy questions and support, open an issue in the [PikaSpace support repository](https://github.com/MelonPika/PikaSpace/issues). Issues are public; do not include private notes, backup files, precise coordinates, or other sensitive information.
