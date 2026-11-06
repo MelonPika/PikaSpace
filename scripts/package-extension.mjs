@@ -82,8 +82,12 @@ await writeFile(archive, Buffer.concat([...localParts, central, end]));
 console.log(`Created ${archive}`);
 }
 await createArchive(await entries(release, name), path.join(root, "releases", `${name}.zip`));
-// Chrome Web Store requires manifest.json at the ZIP root.
-await createArchive(await entries(path.join(release, "extension"), ""), path.join(root, "releases", `${name}-chrome-web-store.zip`));
+// Store uploads need a root manifest without the unpacked extension's public key.
+const storeFiles = await entries(path.join(release, "extension"), "");
+const storeManifest = { ...manifest };
+delete storeManifest.key;
+storeFiles.find(file => file.name === "manifest.json").data = Buffer.from(JSON.stringify(storeManifest, null, 2) + "\n");
+await createArchive(storeFiles, path.join(root, "releases", `${name}-chrome-web-store.zip`));
 const archives = [`${name}.zip`, `${name}-chrome-web-store.zip`];
 const checksums = await Promise.all(archives.map(async archive =>
   `${createHash("sha256").update(await readFile(path.join(root, "releases", archive))).digest("hex")}  ${archive}`));

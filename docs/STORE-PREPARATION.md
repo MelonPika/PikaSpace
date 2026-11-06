@@ -6,7 +6,9 @@ This records preparation, not submission or Google approval. Nothing has been pu
 
 Manifest V3, version 1.0.0, bundled scripts/styles, local module worker, static new-tab override, explicit CSP, 16/48/128 PNG branding icons, privacy/install/release documents, and third-party notices are prepared. `PikaSpace-1.0.0-chrome-web-store.zip` has the manifest at its root and contains runtime files only. No native binaries, test data, source maps, OAuth client, or personal settings are included.
 
-The portable manifest's public key fixes its unpacked ID. Before store publication, obtain the assigned store public key/ID from the developer dashboard and configure the store build and companion for that identity. The local portable key is not a reserved Chrome Web Store identity. Existing local settings require export/import if the ID changes.
+The packaging script removes the manifest's `key` field from the store ZIP to avoid the upload error `key field is not allowed in manifest`. The source, `dist/`, and portable ZIP retain the public key that fixes the unpacked ID. Upload `PikaSpace-1.0.0-chrome-web-store.zip` rather than the portable ZIP or a manually zipped `dist/`.
+
+After the first store upload, obtain the assigned store public key/ID from the developer dashboard. Use that public key in a separate local development copy to test with the store identity, and configure the companion for the assigned store ID. See Chrome's [extension key guidance](https://developer.chrome.com/docs/extensions/reference/manifest/key). The local portable key is not a reserved Chrome Web Store identity. Existing local settings require export/import if the ID changes.
 
 Suggested single purpose: **A personal new-tab dashboard for web search, daily shortcuts, notes, tasks, and useful widgets.**
 

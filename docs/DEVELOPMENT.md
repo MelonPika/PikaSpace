@@ -48,9 +48,9 @@ releases/
 └── PikaSpace-1.0.0-chrome-web-store.zip
 ```
 
-The store-layout ZIP puts `manifest.json` at its root for publisher review; it does not indicate store publication. The companion is packaged separately under `releases/companion/`.
+The store-layout ZIP puts `manifest.json` at its root and removes its `key` field for upload. The source, `dist/`, and portable ZIP retain the stable unpacked extension ID. Building does not publish to the store. The companion is packaged separately under `releases/companion/`.
 
-商店格式 ZIP 将 `manifest.json` 放在根目录，供发布者准备提审，不代表已上架。桌面助手单独生成在 `releases/companion/`。
+商店格式 ZIP 将 `manifest.json` 放在根目录，并移除上传时不允许的 `key` 字段；源码、`dist/` 和便携包保留固定的本地扩展 ID。构建不代表已上架。桌面助手单独生成在 `releases/companion/`。
 
 ## Project map · 项目结构
 
